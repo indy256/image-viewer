@@ -1,0 +1,132 @@
+name: Windows
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '.github/**'
+      - '!.github/workflows/win.yml'
+  pull_request:
+    paths-ignore:
+      - '.github/**'
+      - '!.github/workflows/win.yml'
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      VC: "call vcvars32.bat && cd Libraries"
+      QT_VER: "6.1.2"
+      MANUAL_CACHING: "36"
+      AUTO_CACHING: "false"
+    steps:
+      - name: Get repository name
+        shell: bash
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        shell: cmd
+        run: |
+          choco install --no-progress -y nasm yasm
+
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          path: ${{ env.REPO_NAME }}
+
+      - name: Set up environment variables
+        shell: bash
+        run: |
+          echo "C:\\Strawberry\\perl\\bin\\" >> $GITHUB_PATH
+          echo "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Auxiliary\\Build\\" >> $GITHUB_PATH
+          mkdir Libraries && cd Libraries
+          echo "Convert unix path to win path"
+          p=`pwd | sed 's#^/[d]#d:#g' |sed 's#/#\\\\#g'`
+          echo "LibrariesPath=$p" >> $GITHUB_ENV
+
+      - name: libjpeg-turbo
+        shell: cmd
+        run: |
+          %VC%
+          git clone -b 2.1.0 --depth=1 https://github.com/libjpeg-turbo/libjpeg-turbo.git
+          cd libjpeg-turbo
+
+          cmake -S . -B . -G "Visual Studio 16 2019" -A Win32 -DWITH_JPEG8=ON
+          cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS%
+
+          copy *.h "%VCToolsInstallDir\%include"
+          copy Release\jpeg-static.lib "%VCToolsInstallDir%\lib\x86"
+
+      - name: Save msbuild version
+        shell: cmd
+        run: |
+          call vcvars32.bat
+          msbuild -version > CACHE_KEY.txt
+
+      - name: Generate cache key
+        shell: bash
+        run: |
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" == "true" ]; then
+            thisFile=$REPO_NAME/.github/workflows/win.yml
+            echo `md5sum $thisFile | awk '{ print $1 }'` >> CACHE_KEY.txt
+          fi
+          echo "CACHE_KEY=`md5sum CACHE_KEY.txt | awk '{ print $1 }'`" >> $GITHUB_ENV
+
+      - name: Qt cache
+        id: cache-qt
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/Qt-${{ env.QT_VER }}
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}
+
+      - name: Qt configure
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+
+          git clone -b v%QT_VER% --depth=1 git://code.qt.io/qt/qt5.git qt_src
+          cd qt_src
+          perl init-repository --module-subset=qtbase,qtimageformats
+          git submodule update qtbase qtimageformats
+
+          configure ^
+          -prefix "%LibrariesPath%\Qt-%QT_VER%" ^
+          -release ^
+          -opensource ^
+          -confirm-license ^
+          -static ^
+          -static-runtime ^
+          -optimize-size ^
+          -no-openssl ^
+          -no-opengl ^
+          -system-libjpeg ^
+          -mp ^
+          -nomake examples ^
+          -nomake tests ^
+          -platform win32-msvc
+
+      - name: Qt build
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+          cd qt_src
+
+          cmake --build . --parallel %NUMBER_OF_PROCESSORS%
+          cmake --install .
+
+      - name: Image-viewer build
+        shell: cmd
+        run: |
+          cd %REPO_NAME%
+          call vcvars32.bat
+
+          cmake . -G "Visual Studio 16 2019" -A Win32 -DCMAKE_PREFIX_PATH=%LibrariesPath%\Qt-%QT_VER%
+          cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS%
+
+      - uses: actions/upload-artifact@master
+        name: Upload artifact
+        with:
+          name: image-viewer-windows
+          path: ${{ env.REPO_NAME }}\Release\imageviewer.exe

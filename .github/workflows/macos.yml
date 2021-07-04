@@ -1,0 +1,111 @@
+name: MacOS
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '.github/**'
+      - '!.github/workflows/macos.yml'
+  pull_request:
+    paths-ignore:
+      - '.github/**'
+      - '!.github/workflows/macos.yml'
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    env:
+      QT_VER: "6.1.2"
+      MANUAL_CACHING: "1"
+      AUTO_CACHING: "true"
+    steps:
+      - name: Get repository name.
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo chown -R `whoami`:admin /usr/local/share
+
+          brew install automake libtool ninja shtool yasm pkg-config
+
+      - name: Set up environment variables
+        run: |
+          mkdir Libraries && cd Libraries
+          echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
+
+      - name: libjpeg-turbo
+        run: |
+          cd $LibrariesPath
+          git clone -b 2.1.0 --depth=1 https://github.com/libjpeg-turbo/libjpeg-turbo.git
+          cd libjpeg-turbo
+          cmake -S . -B . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local/macos
+          cmake --build . --parallel $NUMBER_OF_PROCESSORS
+          sudo cmake --install .
+
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: Generate cache key
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+          xcodebuild -version > CACHE_KEY.txt
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" == "true" ]; then
+            thisFile=$REPO_NAME/.github/workflows/macos.yml
+            echo `md5 -q $thisFile` >> CACHE_KEY.txt
+          fi
+          echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
+
+      - name: Qt cache
+        id: cache-qt
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/Qt-${{ env.QT_VER }}
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}
+
+      - name: Qt configure
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v$QT_VER --depth=1 git://code.qt.io/qt/qt5.git qt_src
+          cd qt_src
+          perl init-repository --module-subset=qtbase,qtimageformats
+          git submodule update qtbase qtimageformats
+
+          ./configure \
+          -prefix "$LibrariesPath/Qt-$QT_VER" \
+          -release \
+          -opensource \
+          -confirm-license \
+          -static \
+          -static-runtime \
+          -optimize-size \
+          -no-openssl \
+          -no-opengl \
+          -nomake examples \
+          -nomake tests \
+          -platform macx-clang
+
+      - name: Qt build
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath/qt_src
+          cmake --build . --parallel $NUMBER_OF_PROCESSORS
+          cmake --install .
+
+      - name: Image-viewer build
+        run: |
+          cd $REPO_NAME
+
+          cmake -GXcode -DCMAKE_PREFIX_PATH=$LibrariesPath/Qt-$QT_VER
+          xcoderun='xcodebuild build -project imageviewer.xcodeproj -scheme imageviewer -destination "platform=macOS,arch=x86_64" -configuration Release'
+          bash -c "$xcoderun"
+
+      - uses: actions/upload-artifact@master
+        name: Upload artifact
+        with:
+          name: imageviewer-macos
+          path: ${{ env.REPO_NAME }}/Release

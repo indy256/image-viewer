@@ -1,3 +1,7 @@
+debug
+release
+.idea
+
 # C++ objects and libs
 *.slo
 *.lo
