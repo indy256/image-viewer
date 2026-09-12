@@ -38,22 +38,30 @@ cmake --build ../image-viewer-build
 & C:/Qt/6.11.2/mingw_64/bin/windeployqt.exe --release --no-translations ../image-viewer-build/image-viewer.exe
 ```
 
-Every CI build uploads an archive containing the executable and its Qt runtime.
-Download it from the workflow run's Artifacts section and extract it before running.
-Windows/Linux executables are in `bin/`; macOS has an `image-viewer.app` bundle.
-Keep the accompanying libraries and plugins with the executable.
-Linux packages target the Ubuntu version used by `ubuntu-latest` and newer compatible systems.
+Every CI build uploads standalone downloads in the workflow run's Artifacts section:
+
+- Windows x64: `image-viewer-Windows-X64.exe`, with Qt and the compiler runtime
+  linked statically. No accompanying Qt DLLs or installation are needed.
+- Linux x64: `image-viewer-Linux-X64.AppImage`. Make it executable with `chmod +x`
+  and run it with a JPEG filename. Qt is bundled inside the AppImage.
+- macOS ARM64: a ZIP containing `image-viewer.app`, with its Qt frameworks and
+  plugins inside the bundle. Extract it and run
+  `image-viewer.app/Contents/MacOS/image-viewer /path/to/photo.jpg`.
+
+Linux AppImages target the Ubuntu version used by `ubuntu-latest` and newer compatible systems.
+They still depend on the host's standard system libraries and graphics drivers.
 macOS packages are not Developer ID signed or notarized.
 
 Pushing a version tag such as `v1.0.0` builds all three packages and publishes
-a GitHub Release with the archives attached, after every build succeeds:
+a GitHub Release with the standalone downloads attached, after every build succeeds:
 
 ```sh
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-To package locally after building:
+Local builds use the selected Qt installation. With shared Qt, the following
+creates a portable archive containing the required DLLs rather than a single executable:
 
 ```sh
 cpack --config ../image-viewer-build/CPackConfig.cmake -C Release -G ZIP -B dist
