@@ -37,3 +37,24 @@ $env:PATH = "C:/Qt/Tools/mingw1310_64/bin;C:/Qt/Tools/CMake_64/bin;C:/Qt/Tools/N
 cmake --build ../image-viewer-build
 & C:/Qt/6.11.2/mingw_64/bin/windeployqt.exe --release --no-translations ../image-viewer-build/image-viewer.exe
 ```
+
+Every CI build uploads an archive containing the executable and its Qt runtime.
+Download it from the workflow run's Artifacts section and extract it before running.
+Windows/Linux executables are in `bin/`; macOS has an `image-viewer.app` bundle.
+Keep the accompanying libraries and plugins with the executable.
+Linux packages target the Ubuntu version used by `ubuntu-latest` and newer compatible systems.
+macOS packages are not Developer ID signed or notarized.
+
+Pushing a version tag such as `v1.0.0` builds all three packages and publishes
+a GitHub Release with the archives attached, after every build succeeds:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+To package locally after building:
+
+```sh
+cpack --config ../image-viewer-build/CPackConfig.cmake -C Release -G ZIP -B dist
+```
