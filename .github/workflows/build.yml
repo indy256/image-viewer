@@ -17,6 +17,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            qt-version: '6.8.3'
+          - os: windows-latest
+            qt-version: '6.8.3'
+          - os: macos-latest
+            # Qt 6.8.3 links AGL, which newer macOS SDKs no longer provide.
+            qt-version: '6.11.2'
 
     steps:
       - name: Check out source
@@ -25,7 +33,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.11.2'
+          version: ${{ matrix.qt-version }}
           cache: true
 
       - name: Configure
