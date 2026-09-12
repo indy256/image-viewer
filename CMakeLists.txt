@@ -30,6 +30,24 @@ qt_add_executable(iv
     main.cpp
 )
 target_link_libraries(iv PRIVATE Qt6::Widgets)
+
+option(IMAGE_VIEWER_LTO "Enable link-time optimization for release builds" ${WIN32})
+if(IMAGE_VIEWER_LTO)
+    include(CheckIPOSupported)
+    check_ipo_supported(LANGUAGES CXX)
+    set_target_properties(iv PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
+        INTERPROCEDURAL_OPTIMIZATION_MINSIZEREL TRUE
+    )
+endif()
+if(MINGW)
+    target_compile_options(iv PRIVATE "$<$<CONFIG:Release,MinSizeRel>:-Os>")
+    target_link_options(iv PRIVATE "$<$<CONFIG:Release,MinSizeRel>:-Os;-s>")
+elseif(MSVC)
+    target_compile_options(iv PRIVATE "$<$<CONFIG:Release,MinSizeRel>:/O1>")
+    target_link_options(iv PRIVATE "$<$<CONFIG:Release,MinSizeRel>:/OPT:REF;/OPT:ICF>")
+endif()
+
 get_target_property(qt_library_type Qt6::Core TYPE)
 if(qt_library_type STREQUAL "STATIC_LIBRARY")
     qt_import_plugins(iv

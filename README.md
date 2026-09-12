@@ -54,6 +54,11 @@ Linux AppImages target the Ubuntu version used by `ubuntu-latest` and newer comp
 They still depend on the host's standard system libraries and graphics drivers.
 macOS packages are not Developer ID signed or notarized.
 
+Windows Release builds enable link-time optimization (LTO), optimize for size,
+and strip symbols with MinGW. Set `-DIMAGE_VIEWER_LTO=OFF` to disable LTO.
+The prebuilt static Qt libraries are not rebuilt with LTO; optimization across
+their internals would require an LTO-enabled Qt build.
+
 Pushing a version tag such as `v1.0.0` builds all three packages and publishes
 a GitHub Release with the standalone downloads attached, after every build succeeds:
 
