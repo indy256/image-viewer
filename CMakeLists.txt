@@ -5,6 +5,12 @@ project(ImageViewer LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(IMAGE_VIEWER_STATIC_RUNTIME "Link MinGW Qt dependencies statically" OFF)
+if(MINGW AND IMAGE_VIEWER_STATIC_RUNTIME)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+    set(PKG_CONFIG_ARGN --static)
+endif()
+
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets)
 qt_standard_project_setup(REQUIRES 6.8)
 

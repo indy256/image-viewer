@@ -51,6 +51,13 @@ jobs:
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
             mingw-w64-ucrt-x86_64-qt6-static
+            mingw-w64-ucrt-x86_64-libpng
+            mingw-w64-ucrt-x86_64-libjpeg-turbo
+            mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-harfbuzz
+            mingw-w64-ucrt-x86_64-brotli
+            mingw-w64-ucrt-x86_64-dbus
+            mingw-w64-ucrt-x86_64-openssl
 
       - name: Configure
         if: runner.os != 'Windows'
@@ -64,7 +71,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: msys2 {0}
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/ucrt64/qt6-static
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/ucrt64/qt6-static -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DZLIB_USE_STATIC_LIBS=ON -DOPENSSL_USE_STATIC_LIBS=ON
           cmake --build build --parallel
           mkdir -p dist
           cp build/image-viewer.exe dist/image-viewer-Windows-X64.exe
