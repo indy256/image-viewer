@@ -42,6 +42,7 @@ iv <path-to-image>
 | --- | --- |
 | Left arrow | Select the preceding image in the sorted list. |
 | Right arrow | Select the following image in the sorted list. |
+| Mouse wheel up / down | Select the preceding / following image, one file per wheel notch. |
 | F | Toggle fullscreen and windowed mode. Holding F does not repeatedly toggle. |
 | Left-button double-click in the client area | Toggle fullscreen and windowed mode. |
 | Esc | Close the viewer. |

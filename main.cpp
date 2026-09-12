@@ -14,6 +14,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QWindow>
+#include <QWheelEvent>
 
 #include <algorithm>
 #include <utility>
@@ -155,15 +156,29 @@ protected:
             return;
         }
         if (event->key() == Qt::Key_Left || event->key() == Qt::Key_Right) {
-            const qsizetype next = index_ + (event->key() == Qt::Key_Right ? 1 : -1);
-            if (index_ >= 0 && next >= 0 && next < files_.size()) {
-                index_ = next;
-                loadImage();
-            }
+            navigate(event->key() == Qt::Key_Right ? 1 : -1);
             event->accept();
             return;
         }
         QWidget::keyPressEvent(event);
+    }
+
+    void wheelEvent(QWheelEvent *event) override
+    {
+        const int delta = event->angleDelta().y();
+        if (delta == 0) {
+            event->ignore();
+            return;
+        }
+        // Accumulate high-resolution wheel events into standard 120-unit notches.
+        if ((delta > 0 && wheelRemainder_ < 0) || (delta < 0 && wheelRemainder_ > 0))
+            wheelRemainder_ = 0;
+        wheelRemainder_ += delta;
+        const qsizetype steps = wheelRemainder_ / 120;
+        wheelRemainder_ %= 120;
+        if (steps != 0)
+            navigate(-steps);
+        event->accept();
     }
 
     void paintEvent(QPaintEvent *) override
@@ -186,6 +201,17 @@ protected:
 private:
 
     using FileStamp = QPair<qint64, QDateTime>;
+
+    void navigate(qsizetype offset)
+    {
+        if (index_ < 0 || files_.isEmpty())
+            return;
+        const qsizetype next = std::clamp(index_ + offset, qsizetype(0), files_.size() - 1);
+        if (next != index_) {
+            index_ = next;
+            loadImage();
+        }
+    }
 
     void refreshDirectory(const QString &preferredPath = {})
     {
@@ -432,6 +458,7 @@ private:
     static constexpr qsizetype preloadRadius_ = 100;
 
     bool dragPending_ = false;
+    qint64 wheelRemainder_ = 0;
     QPoint dragStart_;
     Qt::WindowStates windowedState_ = Qt::WindowNoState;
     QRect windowedGeometry_;

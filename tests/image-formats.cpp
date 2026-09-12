@@ -133,6 +133,28 @@ int main(int argc, char **argv)
     key(Qt::Key_Right);
     require(waitFor(isBlue), "Navigation back to JP2 failed");
 
+    auto wheel = [&](int vertical, int horizontal = 0) {
+        QWheelEvent event(QPointF(160,120), viewer.mapToGlobal(QPoint(160,120)),
+                          QPoint(), QPoint(horizontal,vertical), Qt::NoButton,
+                          Qt::NoModifier, Qt::NoScrollPhase, false);
+        QApplication::sendEvent(&viewer, &event);
+    };
+    wheel(60);
+    require(viewer.windowTitle().contains("(2/14)"), "Partial notch moved too early");
+    wheel(60);
+    require(viewer.windowTitle().contains("(1/14)"), "Wheel up did not select previous file");
+    wheel(120);
+    require(viewer.windowTitle().contains("(1/14)"), "Wheel wrapped past first file");
+    wheel(-120);
+    require(viewer.windowTitle().contains("(2/14)"), "Wheel down did not select next file");
+    wheel(0,120);
+    require(viewer.windowTitle().contains("(2/14)"), "Horizontal wheel changed selection");
+    wheel(-2400);
+    require(viewer.windowTitle().contains("(14/14)"), "Wheel did not stop at last file");
+    wheel(1440);
+    require(viewer.windowTitle().contains("(2/14)"), "Multiple wheel notches failed");
+    require(waitFor(isBlue), "Wheel navigation did not display the image");
+
     writeFile(folder.filePath("c.jp2"), redJp2);
     require(waitFor([&] { return viewer.windowTitle().contains("(2/15)"); }),
             "Added JP2 file was not discovered");
