@@ -119,12 +119,20 @@ jobs:
           mkdir -p dist
           ./appimagetool.AppImage AppDir dist/iv.AppImage
 
+      - name: Upload macOS archive without an extra ZIP wrapper
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/iv-macOS-ARM64.zip
+          archive: false
+          if-no-files-found: error
+
       - name: Upload binaries
+        if: runner.os != 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: iv-${{ runner.os }}-${{ runner.arch }}
           path: |
-            dist/*.zip
             dist/*.exe
             dist/*.AppImage
           if-no-files-found: error
@@ -138,12 +146,19 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download binaries
+      - name: Download Windows and Linux binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: iv-*
+          pattern: iv-*-X64
           path: dist
           merge-multiple: true
+
+      - name: Download macOS archive
+        uses: actions/download-artifact@v8
+        with:
+          name: iv-macOS-ARM64.zip
+          path: dist
+          skip-decompress: true
 
       - name: Create release and upload binaries
         env:
