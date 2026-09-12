@@ -76,9 +76,9 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/ucrt64/qt6-static -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DZLIB_USE_STATIC_LIBS=ON -DOPENSSL_USE_STATIC_LIBS=ON
           cmake --build build --parallel
           mkdir -p dist
-          cp build/image-viewer.exe dist/image-viewer-Windows-X64.exe
-          objdump -p dist/image-viewer-Windows-X64.exe | grep 'DLL Name:'
-          if objdump -p dist/image-viewer-Windows-X64.exe | grep -Ei 'DLL Name:.*(Qt6|libgcc|libstdc\+\+|libwinpthread)'; then
+          cp build/iv.exe dist/iv.exe
+          objdump -p dist/iv.exe | grep 'DLL Name:'
+          if objdump -p dist/iv.exe | grep -Ei 'DLL Name:.*(Qt6|libgcc|libstdc\+\+|libwinpthread)'; then
             echo 'Unexpected runtime DLL dependency'
             exit 1
           fi
@@ -89,7 +89,7 @@ jobs:
         run: |
           $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
           Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
-          $viewer = Start-Process -FilePath "$PWD/dist/image-viewer-Windows-X64.exe" -WindowStyle Hidden -PassThru
+          $viewer = Start-Process -FilePath "$PWD/dist/iv.exe" -WindowStyle Hidden -PassThru
           try {
             Start-Sleep -Seconds 2
             if ($viewer.HasExited) { throw "Viewer exited during startup: $($viewer.ExitCode)" }
@@ -102,7 +102,7 @@ jobs:
         run: >-
           cpack --config build/CPackConfig.cmake -C Release
           -G ${{ matrix.package-format }} -B dist
-          -D CPACK_PACKAGE_FILE_NAME=image-viewer-${{ runner.os }}-${{ runner.arch }}
+          -D CPACK_PACKAGE_FILE_NAME=iv-${{ runner.os }}-${{ runner.arch }}
 
       - name: Build Linux AppImage
         if: runner.os == 'Linux'
@@ -117,12 +117,12 @@ jobs:
           curl -fL --retry 3 -o appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
           mkdir -p dist
-          ./appimagetool.AppImage AppDir dist/image-viewer-Linux-X64.AppImage
+          ./appimagetool.AppImage AppDir dist/iv.AppImage
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
-          name: image-viewer-${{ runner.os }}-${{ runner.arch }}
+          name: iv-${{ runner.os }}-${{ runner.arch }}
           path: |
             dist/*.zip
             dist/*.exe
@@ -141,7 +141,7 @@ jobs:
       - name: Download binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: image-viewer-*
+          pattern: iv-*
           path: dist
           merge-multiple: true
 

@@ -31,7 +31,7 @@ public:
         setMinimumSize(1, 1);
         setWindowTitle(tr("JPEG Viewer"));
         if (arguments.size() != 2) {
-            message_ = tr("Usage: image-viewer <file.jpg>\n\nLeft / Right: previous / next JPEG\nF: toggle full screen\nEsc: exit");
+            message_ = tr("Usage: iv <file.jpg>\n\nLeft / Right: previous / next JPEG\nF: toggle full screen\nEsc: exit");
             return;
         }
 

@@ -3,7 +3,7 @@
 A single-window Qt Widgets application that opens in full-screen mode. Launch with a JPEG filename:
 
 ```powershell
-& C:/projects/image-viewer-build/image-viewer.exe "C:/Pictures/photo.jpg"
+& C:/projects/image-viewer-build/iv.exe "C:/Pictures/photo.jpg"
 ```
 
 Left and Right open the previous and next `.jpg` or `.jpeg` in the supplied
@@ -35,18 +35,18 @@ Build with the local Qt 6.11.2 / MinGW installation:
 $env:PATH = "C:/Qt/Tools/mingw1310_64/bin;C:/Qt/Tools/CMake_64/bin;C:/Qt/Tools/Ninja;$env:PATH"
 & C:/Qt/6.11.2/mingw_64/bin/qt-cmake.bat -S . -B ../image-viewer-build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build ../image-viewer-build
-& C:/Qt/6.11.2/mingw_64/bin/windeployqt.exe --release --no-translations ../image-viewer-build/image-viewer.exe
+& C:/Qt/6.11.2/mingw_64/bin/windeployqt.exe --release --no-translations ../image-viewer-build/iv.exe
 ```
 
 Every CI build uploads standalone downloads in the workflow run's Artifacts section:
 
-- Windows x64: `image-viewer-Windows-X64.exe`, with Qt and the compiler runtime
+- Windows x64: `iv.exe`, with Qt and the compiler runtime
   linked statically. No accompanying Qt DLLs or installation are needed.
-- Linux x64: `image-viewer-Linux-X64.AppImage`. Make it executable with `chmod +x`
+- Linux x64: `iv.AppImage`. Make it executable with `chmod +x`
   and run it with a JPEG filename. Qt is bundled inside the AppImage.
-- macOS ARM64: a ZIP containing `image-viewer.app`, with its Qt frameworks and
+- macOS ARM64: a ZIP containing `iv.app`, with its Qt frameworks and
   plugins inside the bundle. Extract it and run
-  `image-viewer.app/Contents/MacOS/image-viewer /path/to/photo.jpg`.
+  `iv.app/Contents/MacOS/iv /path/to/photo.jpg`.
 
 Linux AppImages target the Ubuntu version used by `ubuntu-latest` and newer compatible systems.
 They still depend on the host's standard system libraries and graphics drivers.

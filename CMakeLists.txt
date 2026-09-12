@@ -24,29 +24,29 @@ endif()
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets)
 qt_standard_project_setup(REQUIRES 6.8)
 
-qt_add_executable(image-viewer
+qt_add_executable(iv
     WIN32
     MACOSX_BUNDLE
     main.cpp
 )
-target_link_libraries(image-viewer PRIVATE Qt6::Widgets)
+target_link_libraries(iv PRIVATE Qt6::Widgets)
 get_target_property(qt_library_type Qt6::Core TYPE)
 if(qt_library_type STREQUAL "STATIC_LIBRARY")
-    qt_import_plugins(image-viewer
+    qt_import_plugins(iv
         INCLUDE_BY_TYPE imageformats Qt6::QJpegPlugin
     )
     if(MINGW)
-        target_link_options(image-viewer PRIVATE -static)
+        target_link_options(iv PRIVATE -static)
     endif()
 endif()
 
-install(TARGETS image-viewer
+install(TARGETS iv
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
     qt_generate_deploy_app_script(
-        TARGET image-viewer
+        TARGET iv
         OUTPUT_SCRIPT deploy_script
         NO_TRANSLATIONS
     )
@@ -54,7 +54,7 @@ if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
 endif()
 install(FILES README.md DESTINATION .)
 
-set(CPACK_PACKAGE_NAME "image-viewer")
+set(CPACK_PACKAGE_NAME "iv")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG viewer")
 set(CPACK_VERBATIM_VARIABLES ON)
 include(CPack)
