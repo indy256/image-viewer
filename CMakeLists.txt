@@ -50,7 +50,13 @@ set(JAS_ENABLE_MULTITHREADING_SUPPORT OFF CACHE BOOL "" FORCE)
 foreach(codec IN ITEMS BMP JPG HEIC MIF PGX PNM RAS)
     set(JAS_INCLUDE_${codec}_CODEC OFF CACHE BOOL "" FORCE)
 endforeach()
-add_subdirectory(${jasper_SOURCE_DIR} ${jasper_BINARY_DIR} EXCLUDE_FROM_ALL)
+function(add_bundled_jasper)
+    # JasPer checks the top-level paths, so it rejects our usual -B build layout.
+    # Its own source and binary directories remain separate under build/_deps.
+    set(ALLOW_IN_SOURCE_BUILD ON)
+    add_subdirectory(${jasper_SOURCE_DIR} ${jasper_BINARY_DIR} EXCLUDE_FROM_ALL)
+endfunction()
+add_bundled_jasper()
 set_target_properties(libjasper PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 set(jp2_source_dir ${qtimageformats_SOURCE_DIR}/src/plugins/imageformats/jp2)
 qt_add_plugin(iv_jp2 STATIC CLASS_NAME QJp2Plugin
