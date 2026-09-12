@@ -33,13 +33,13 @@ public:
         setMinimumSize(1, 1);
         setWindowTitle(tr("Image Viewer"));
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.jpg|file.jp2>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
+            message_ = tr("Usage: iv <file.jpg|file.jp2|file.webp>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
             return;
         }
 
         const QFileInfo initial(arguments.at(1));
         if (!initial.isFile() || !isSupportedImage(initial)) {
-            message_ = tr("Not a supported image file (JPEG or JP2): %1").arg(arguments.at(1));
+            message_ = tr("Not a supported image file (JPEG, JP2 or WebP): %1").arg(arguments.at(1));
             return;
         }
 
@@ -276,7 +276,7 @@ private:
         if (files_.isEmpty()) {
             index_ = -1;
             image_ = QImage();
-            message_ = tr("No JPEG or JP2 files in this folder. Waiting for images...");
+            message_ = tr("No JPEG, JP2 or WebP files in this folder. Waiting for images...");
             setWindowTitle(tr("Image Viewer"));
             update();
             return;
@@ -373,7 +373,8 @@ private:
         const auto suffix = file.suffix();
         return suffix.compare(QStringLiteral("jpg"), Qt::CaseInsensitive) == 0
             || suffix.compare(QStringLiteral("jpeg"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("jp2"), Qt::CaseInsensitive) == 0;
+            || suffix.compare(QStringLiteral("jp2"), Qt::CaseInsensitive) == 0
+            || suffix.compare(QStringLiteral("webp"), Qt::CaseInsensitive) == 0;
     }
 
     void loadImage()
@@ -433,8 +434,10 @@ private:
             pending_.insert(path);
             const FileStamp stamp = stamps_.value(path);
             workers_.start([this, path, stamp] {
-                const bool jp2 = QFileInfo(path).suffix().compare("jp2", Qt::CaseInsensitive) == 0;
-                QImageReader reader(path, jp2 ? "jp2" : "jpeg");
+                QByteArray format = QFileInfo(path).suffix().toLower().toLatin1();
+                if (format == "jpg")
+                    format = "jpeg";
+                QImageReader reader(path, format);
                 reader.setAutoTransform(true);
                 CachedImage result{reader.read(), reader.errorString()};
                 QMetaObject::invokeMethod(this, [this, path, stamp, result = std::move(result)] {

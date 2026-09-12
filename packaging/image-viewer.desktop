@@ -4,5 +4,5 @@ Name=Image Viewer
 Exec=iv %f
 Icon=image-viewer
 Categories=Graphics;Viewer;
-MimeType=image/jpeg;image/jp2;
+MimeType=image/jpeg;image/jp2;image/webp;
 Terminal=false

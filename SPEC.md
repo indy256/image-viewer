@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`iv` is a single-window desktop JPEG and JPEG 2000 viewer built with Qt Widgets. It opens a
+`iv` is a single-window desktop JPEG, JPEG 2000, and WebP viewer built with Qt Widgets. It opens a
 specified image, supports fast keyboard navigation through its folder, and
 updates the image list when the folder changes.
 
@@ -16,7 +16,7 @@ iv <path-to-image>
   directory. Paths containing spaces must be quoted in the shell.
 - Open in fullscreen mode, including when displaying usage or error messages.
 - Browse the supplied file's containing directory, without searching subfolders.
-- Include files with `.jpg`, `.jpeg`, or `.jp2` extensions, matched case-insensitively,
+- Include files with `.jpg`, `.jpeg`, `.jp2`, or `.webp` extensions, matched case-insensitively,
   including hidden files.
 - Sort by filename in case-insensitive alphabetical order. Resolve equal
   case-insensitive names using case-sensitive order. Sorting is lexical, so
@@ -88,7 +88,7 @@ Usage, invalid-startup-path, and empty-folder views use `Image Viewer` as the ti
 
 - Cache decoded images at full resolution for the current file and up to 100
   preceding and 100 following files: a sliding range of up to 201 files.
-- Decode JPEG and JP2 images in background workers with at most two requests
+- Decode JPEG, JP2, and WebP images in background workers with at most two requests
   in flight. Each JP2 request uses an independent OpenJPEG decoder.
 - Prioritize the current selection, then its nearest neighbors.
 - Display cached images without waiting for disk access or decoding. Display a
@@ -111,7 +111,7 @@ to finish safely.
 ## Live folder updates
 
 Use filesystem event notifications for the containing folder and individual
-JPEG or JP2 files. Group events with a 150 ms debounce before rescanning; there is no
+JPEG, JP2, or WebP files. Group events with a 150 ms debounce before rescanning; there is no
 periodic polling.
 
 Rescans discover added, removed, renamed, and changed files, rebuild alphabetical
@@ -121,7 +121,7 @@ Change detection uses file size and last-modified time.
 
 Preserve the selected path when it remains present. If it disappears, select the
 file at its previous list index, clamped to the new list bounds. When the folder
-has no JPEG or JP2 files, display a waiting message and continue watching it. Select the
+has no JPEG, JP2, or WebP files, display a waiting message and continue watching it. Select the
 first available image when files appear in the empty folder.
 
 ## Build and distribution
@@ -166,3 +166,7 @@ without Qt on `PATH`.
 Pushing a version tag matching `v*` publishes the three deliverables to a GitHub
 Release after all platform builds succeed. An existing release for the tag is
 updated with the generated binaries.
+
+WebP support uses Qt Image Formats 6.8.3's static WebP plugin with libwebp 1.6.0.
+Configuration downloads checksum-verified source archives. Lossy, lossless, and
+transparent WebP images are supported; animated WebP displays its first frame.

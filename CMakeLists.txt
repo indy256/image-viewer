@@ -73,12 +73,46 @@ target_include_directories(iv_jp2 PRIVATE
 )
 target_link_libraries(iv_jp2 PRIVATE Qt6::Gui openjp2)
 
+# Bundle Qt's WebP handler so support does not depend on installed plugins.
+FetchContent_Declare(libwebp
+    URL https://github.com/webmproject/libwebp/archive/refs/tags/v1.6.0.tar.gz
+    URL_HASH SHA256=93a852c2b3efafee3723efd4636de855b46f9fe1efddd607e1f42f60fc8f2136
+    SOURCE_SUBDIR unused
+)
+FetchContent_Declare(qtimageformats
+    URL https://github.com/qt/qtimageformats/archive/refs/tags/v6.8.3.tar.gz
+    URL_HASH SHA256=ad5039af9382395641e68905e26d5e29c6fd4e02a93214c8c9df3ef88c16a26f
+    SOURCE_SUBDIR unused
+)
+FetchContent_MakeAvailable(libwebp qtimageformats)
+function(add_bundled_webp)
+    set(BUILD_SHARED_LIBS OFF)
+    set(WEBP_LINK_STATIC ON)
+    set(CMAKE_AUTOMOC OFF)
+    set(CMAKE_AUTOUIC OFF)
+    foreach(tool IN ITEMS ANIM_UTILS CWEBP DWEBP GIF2WEBP IMG2WEBP VWEBP
+            WEBPINFO WEBPMUX EXTRAS WEBP_JS FUZZTEST)
+        set(WEBP_BUILD_${tool} OFF)
+    endforeach()
+    set(WEBP_BUILD_LIBWEBPMUX ON)
+    add_subdirectory(${libwebp_SOURCE_DIR} ${libwebp_BINARY_DIR} EXCLUDE_FROM_ALL)
+endfunction()
+add_bundled_webp()
+set(webp_plugin_dir ${qtimageformats_SOURCE_DIR}/src/plugins/imageformats/webp)
+qt_add_plugin(iv_webp STATIC CLASS_NAME QWebpPlugin
+    ${webp_plugin_dir}/main.cpp
+    ${webp_plugin_dir}/qwebphandler.cpp
+    ${webp_plugin_dir}/qwebphandler_p.h
+)
+target_include_directories(iv_webp PRIVATE ${libwebp_SOURCE_DIR}/src)
+target_link_libraries(iv_webp PRIVATE Qt6::Gui webp webpdemux libwebpmux)
+
 qt_add_executable(iv
     WIN32
     MACOSX_BUNDLE
     main.cpp
 )
-target_link_libraries(iv PRIVATE Qt6::Widgets iv_jp2)
+target_link_libraries(iv PRIVATE Qt6::Widgets iv_jp2 iv_webp)
 if(WIN32)
     target_link_libraries(iv PRIVATE dwmapi)
 endif()
@@ -114,7 +148,7 @@ option(IMAGE_VIEWER_BUILD_TESTS "Build image-format integration tests" OFF)
 if(IMAGE_VIEWER_BUILD_TESTS)
     enable_testing()
     qt_add_executable(iv_image_tests tests/image-formats.cpp)
-    target_link_libraries(iv_image_tests PRIVATE Qt6::Widgets iv_jp2)
+    target_link_libraries(iv_image_tests PRIVATE Qt6::Widgets iv_jp2 iv_webp)
     if(WIN32)
         target_link_libraries(iv_image_tests PRIVATE dwmapi)
     endif()
@@ -147,7 +181,12 @@ install(FILES README.md DESTINATION .)
 install(FILES ${openjpeg_SOURCE_DIR}/LICENSE
     DESTINATION licenses RENAME OpenJPEG.txt)
 
+install(FILES ${libwebp_SOURCE_DIR}/COPYING ${libwebp_SOURCE_DIR}/PATENTS
+    DESTINATION licenses/libwebp)
+install(DIRECTORY ${qtimageformats_SOURCE_DIR}/LICENSES/
+    DESTINATION licenses/QtImageFormats)
+
 set(CPACK_PACKAGE_NAME "iv")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG and JPEG 2000 viewer")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG, JPEG 2000 and WebP viewer")
 set(CPACK_VERBATIM_VARIABLES ON)
 include(CPack)

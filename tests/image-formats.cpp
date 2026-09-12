@@ -21,13 +21,13 @@ static void require(bool condition, const char *message)
     }
 }
 
-static QByteArray encode(const QImage &image, const char *format)
+static QByteArray encode(const QImage &image, const char *format, int quality = 100)
 {
     QByteArray bytes;
     QBuffer buffer(&bytes);
     buffer.open(QIODevice::WriteOnly);
     QImageWriter writer(&buffer, format);
-    writer.setQuality(100);
+    writer.setQuality(quality);
     require(writer.write(image), "Image encoding failed");
     return bytes;
 }
@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     QApplication app(argc, argv);
     QImageReader::setAllocationLimit(1024);
     require(QImageReader::supportedImageFormats().contains("jp2"), "JP2 plugin not linked");
+    require(QImageReader::supportedImageFormats().contains("webp"), "WebP plugin not linked");
     require(app.arguments().size() == 2, "Missing JP2 fixture directory");
     QImageReader reference(QDir(app.arguments().at(1)).filePath("red.jp2"), "jp2");
     require(reference.read().size() == QSize(64, 48), "Reference JP2 fixture failed to decode");
@@ -74,6 +75,20 @@ int main(int argc, char **argv)
     const QByteArray redJp2 = fixture("red.jp2");
     const QByteArray blueJp2 = fixture("blue.jp2");
     const QByteArray jpeg = encode(red, "jpeg");
+    const QByteArray blueWebp = encode(blue, "webp");
+    const QImage lossyWebp = QImage::fromData(encode(red, "webp", 75), "webp");
+    require(lossyWebp.size() == red.size() && lossyWebp.pixelColor(32,24).red() > 245
+                && lossyWebp.pixelColor(32,24).green() < 10
+                && lossyWebp.pixelColor(32,24).blue() < 10,
+            "Lossy WebP decoding failed");
+    QImage transparent(64, 48, QImage::Format_ARGB32);
+    transparent.fill(QColor(200, 100, 50, 128));
+    const QImage decodedWebp = QImage::fromData(encode(transparent, "webp"), "webp");
+    require(decodedWebp.size() == transparent.size()
+                && decodedWebp.pixelColor(32, 24) == QColor(200, 100, 50, 128),
+            "Transparent lossless WebP decoding failed");
+    require(QImage::fromData(blueWebp.left(20), "webp").isNull(),
+            "Truncated WebP should fail decoding");
     const QImage roundTrip = QImage::fromData(redJp2, "jp2");
     require(roundTrip.size() == red.size() && roundTrip.pixelColor(32, 24) == QColor(Qt::red),
             "RGB JP2 decoding failed");
@@ -166,5 +181,19 @@ int main(int argc, char **argv)
             "Modified JP2 did not invalidate its cached image");
     key(Qt::Key_Right);
     require(waitFor(isBlue), "Navigation after corrupt JP2 failed");
-    std::cout << "PASS: JP2 decoding, mixed navigation, preloading, live updates, corrupt file recovery\n";
+    writeFile(folder.filePath("e.WEBP"), blueWebp);
+    require(waitFor([&] { return viewer.windowTitle().contains("/16)"); }),
+            "Added uppercase WebP file was not discovered");
+    wheel(-2400);
+    require(waitFor([&] { return viewer.windowTitle().contains("e.WEBP (16/16)") && isBlue(); }),
+            "Navigation to WebP failed");
+    writeFile(folder.filePath("e.WEBP"), encode(red, "webp"));
+    require(waitFor([&] { return viewer.grab().toImage().pixelColor(160,120) == QColor(Qt::red); }),
+            "Modified WebP did not invalidate its cached image");
+    ImageViewer webpViewer({"iv", folder.filePath("e.WEBP")});
+    webpViewer.resize(320, 240);
+    webpViewer.show();
+    require(waitFor([&] { return webpViewer.grab().toImage().pixelColor(160,120) == QColor(Qt::red); }),
+            "Opening WebP from command line failed");
+    std::cout << "PASS: JP2/WebP decoding, mixed navigation, preloading, live updates, corrupt file recovery\n";
 }

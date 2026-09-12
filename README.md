@@ -2,22 +2,22 @@
 
 [![Build](https://github.com/indy256/image-viewer/actions/workflows/build.yml/badge.svg)](https://github.com/indy256/image-viewer/actions/workflows/build.yml)
 
-A single-window viewer for JPEG (`.jpg`, `.jpeg`) and JPEG 2000 (`.jp2`) images that opens in full-screen mode. Launch with an image filename:
+A single-window viewer for JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), and WebP (`.webp`) images that opens in full-screen mode. Launch with an image filename:
 
 ```powershell
 & C:/projects/image-viewer-build/iv.exe "C:/Pictures/photo.jpg"
 ```
 
-Browse JPEG and JP2 images in the same folder alphabetically with the Left and Right arrow keys
+Browse JPEG, JP2, and WebP images in the same folder alphabetically with the Left and Right arrow keys
 or the mouse wheel (up for previous, down for next).
 Photos automatically fit the window, and newly added files appear without restarting.
 Press F or double-click to switch between fullscreen and windowed mode, drag the
 image to move the window, and press Esc to exit. Your window size and position are
-remembered when switching modes.
+remembered when switching modes. WebP supports transparency; animated WebP shows its first frame.
 
 Build with the local Qt 6.11.2 / MinGW installation. Initial configuration downloads
-the pinned OpenJPEG codec source, which is linked into the
-viewer, so JP2 support needs no extra runtime installation:
+pinned OpenJPEG, libwebp, and Qt Image Formats sources. JP2 and WebP decoders
+are linked into the viewer and need no extra runtime installation:
 
 ```powershell
 $env:PATH = "C:/Qt/Tools/mingw1310_64/bin;C:/Qt/Tools/CMake_64/bin;C:/Qt/Tools/Ninja;$env:PATH"
