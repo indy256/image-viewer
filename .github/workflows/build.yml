@@ -66,18 +66,23 @@ jobs:
 
       - name: Configure
         if: runner.os != 'Windows'
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DIMAGE_VIEWER_BUILD_TESTS=ON
 
       - name: Build
         if: runner.os != 'Windows'
         run: cmake --build build --config Release --parallel
 
+      - name: Test image formats
+        if: runner.os != 'Windows'
+        run: ctest --test-dir build -C Release --output-on-failure
+
       - name: Build standalone Windows executable
         if: runner.os == 'Windows'
         shell: msys2 {0}
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/ucrt64/qt6-static -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DZLIB_USE_STATIC_LIBS=ON -DOPENSSL_USE_STATIC_LIBS=ON
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/ucrt64/qt6-static -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DZLIB_USE_STATIC_LIBS=ON -DOPENSSL_USE_STATIC_LIBS=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
           cmake --build build --parallel
+          ctest --test-dir build -C Release --output-on-failure
           mkdir -p dist
           cp build/iv.exe dist/iv.exe
           objdump -p dist/iv.exe | grep 'DLL Name:'

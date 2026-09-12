@@ -1,20 +1,22 @@
-# JPEG Viewer
+# Image Viewer
 
 [![Build](https://github.com/indy256/image-viewer/actions/workflows/build.yml/badge.svg)](https://github.com/indy256/image-viewer/actions/workflows/build.yml)
 
-A single-window Qt Widgets application that opens in full-screen mode. Launch with a JPEG filename:
+A single-window viewer for JPEG (`.jpg`, `.jpeg`) and JPEG 2000 (`.jp2`) images that opens in full-screen mode. Launch with an image filename:
 
 ```powershell
 & C:/projects/image-viewer-build/iv.exe "C:/Pictures/photo.jpg"
 ```
 
-Browse JPEGs in the same folder alphabetically with the Left and Right arrow keys.
+Browse JPEG and JP2 images in the same folder alphabetically with the Left and Right arrow keys.
 Photos automatically fit the window, and newly added files appear without restarting.
 Press F or double-click to switch between fullscreen and windowed mode, drag the
 image to move the window, and press Esc to exit. Your window size and position are
 remembered when switching modes.
 
-Build with the local Qt 6.11.2 / MinGW installation:
+Build with the local Qt 6.11.2 / MinGW installation. Initial configuration downloads
+the pinned Qt JPEG 2000 plugin source and JasPer codec; both are linked into the
+viewer, so JP2 support needs no extra runtime installation:
 
 ```powershell
 $env:PATH = "C:/Qt/Tools/mingw1310_64/bin;C:/Qt/Tools/CMake_64/bin;C:/Qt/Tools/Ninja;$env:PATH"
@@ -28,7 +30,7 @@ Every CI build uploads standalone downloads in the workflow run's Artifacts sect
 - Windows x64: `iv.exe`, with Qt and the compiler runtime
   linked statically. No accompanying Qt DLLs or installation are needed.
 - Linux x64: `iv.AppImage`. Make it executable with `chmod +x`
-  and run it with a JPEG filename. Qt is bundled inside the AppImage.
+  and run it with an image filename. Qt is bundled inside the AppImage.
 - macOS ARM64: a ZIP containing `iv.app`, with its Qt frameworks and
   plugins inside the bundle. Extract it and run
   `iv.app/Contents/MacOS/iv /path/to/photo.jpg`.

@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=JPEG Viewer
+Name=Image Viewer
 Exec=iv %f
 Icon=image-viewer
 Categories=Graphics;Viewer;
-MimeType=image/jpeg;
+MimeType=image/jpeg;image/jp2;
 Terminal=false

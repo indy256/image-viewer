@@ -7,6 +7,8 @@
 #include <QKeyEvent>
 #include <QMap>
 #include <QMouseEvent>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QPainter>
 #include <QScreen>
 #include <QSet>
@@ -30,15 +32,15 @@ public:
     {
         resize(1000, 700);
         setMinimumSize(1, 1);
-        setWindowTitle(tr("JPEG Viewer"));
+        setWindowTitle(tr("Image Viewer"));
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.jpg>\n\nLeft / Right: previous / next JPEG\nF: toggle full screen\nEsc: exit");
+            message_ = tr("Usage: iv <file.jpg|file.jp2>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
             return;
         }
 
         const QFileInfo initial(arguments.at(1));
-        if (!initial.isFile() || !isJpeg(initial)) {
-            message_ = tr("Not a JPEG file: %1").arg(arguments.at(1));
+        if (!initial.isFile() || !isSupportedImage(initial)) {
+            message_ = tr("Not a supported image file (JPEG or JP2): %1").arg(arguments.at(1));
             return;
         }
 
@@ -195,7 +197,7 @@ private:
         const auto entries = QDir(directory_).entryInfoList(
             QDir::Files | QDir::Hidden, QDir::NoSort);
         for (const auto &entry : entries) {
-            if (isJpeg(entry)) {
+            if (isSupportedImage(entry)) {
                 files.append(entry.absoluteFilePath());
                 stamps.insert(entry.absoluteFilePath(), {entry.size(), entry.lastModified()});
             }
@@ -250,8 +252,8 @@ private:
         if (files_.isEmpty()) {
             index_ = -1;
             image_ = QImage();
-            message_ = tr("No JPEG files in this folder. Waiting for images...");
-            setWindowTitle(tr("JPEG Viewer"));
+            message_ = tr("No JPEG or JP2 files in this folder. Waiting for images...");
+            setWindowTitle(tr("Image Viewer"));
             update();
             return;
         }
@@ -342,11 +344,12 @@ private:
         fitPending_ = false;
     }
 
-    static bool isJpeg(const QFileInfo &file)
+    static bool isSupportedImage(const QFileInfo &file)
     {
         const auto suffix = file.suffix();
         return suffix.compare(QStringLiteral("jpg"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("jpeg"), Qt::CaseInsensitive) == 0;
+            || suffix.compare(QStringLiteral("jpeg"), Qt::CaseInsensitive) == 0
+            || suffix.compare(QStringLiteral("jp2"), Qt::CaseInsensitive) == 0;
     }
 
     void loadImage()
@@ -359,7 +362,7 @@ private:
                 ++it;
         }
         showCachedImage();
-        setWindowTitle(tr("%1 (%2/%3) - JPEG Viewer - Left / Right to navigate")
+        setWindowTitle(tr("%1 (%2/%3) - Image Viewer - Left / Right to navigate")
                            .arg(QFileInfo(path).absoluteDir().dirName()
                                 + QLatin1Char('/') + QFileInfo(path).fileName())
                            .arg(index_ + 1).arg(files_.size()));
@@ -405,7 +408,12 @@ private:
             pending_.insert(path);
             const FileStamp stamp = stamps_.value(path);
             workers_.start([this, path, stamp] {
-                QImageReader reader(path, "jpeg");
+                // The JasPer-backed Qt plugin initializes global codec state per read.
+                // Serialize JP2 decoding while JPEG decoding remains concurrent.
+                static QMutex jp2Mutex;
+                const bool jp2 = QFileInfo(path).suffix().compare("jp2", Qt::CaseInsensitive) == 0;
+                QMutexLocker lock(jp2 ? &jp2Mutex : nullptr);
+                QImageReader reader(path, jp2 ? "jp2" : "jpeg");
                 reader.setAutoTransform(true);
                 CachedImage result{reader.read(), reader.errorString()};
                 QMetaObject::invokeMethod(this, [this, path, stamp, result = std::move(result)] {
@@ -452,6 +460,9 @@ private:
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    // JPEG 2000 needs substantial temporary memory beyond the decoded pixels.
+    // Keep a bounded budget; QT_IMAGEIO_MAXALLOC can override it at runtime.
+    QImageReader::setAllocationLimit(1024);
     ImageViewer viewer(app.arguments());
     viewer.enterFullScreen();
     return app.exec();
