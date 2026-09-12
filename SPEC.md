@@ -75,11 +75,13 @@ already fitted window. Window state is not persisted between application runs.
 For a selected file, the title has this format:
 
 ```text
-CurrentDir/filename (position/total) - Image Viewer - Left / Right to navigate
+CurrentDir/filename (position/total) - width × height - Image Viewer - Left / Right to navigate
 ```
 
 `CurrentDir` is the containing folder's final name, not its full absolute path.
 `position` is one-based. The title updates with the selection and file count.
+Resolution is the decoded image's width and height in pixels, after orientation,
+and appears once decoding finishes. It is omitted while loading or on a decoding error.
 Usage, invalid-startup-path, and empty-folder views use `Image Viewer` as the title.
 
 ## Preloading and responsiveness

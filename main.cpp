@@ -378,7 +378,6 @@ private:
 
     void loadImage()
     {
-        const QString &path = files_.at(index_);
         for (auto it = cache_.begin(); it != cache_.end();) {
             if (!inCacheRange(files_.indexOf(it.key())))
                 it = cache_.erase(it);
@@ -386,10 +385,6 @@ private:
                 ++it;
         }
         showCachedImage();
-        setWindowTitle(tr("%1 (%2/%3) - Image Viewer - Left / Right to navigate")
-                           .arg(QFileInfo(path).absoluteDir().dirName()
-                                + QLatin1Char('/') + QFileInfo(path).fileName())
-                           .arg(index_ + 1).arg(files_.size()));
         preload();
     }
 
@@ -415,6 +410,12 @@ private:
                            .arg(QFileInfo(files_.at(index_)).fileName(), it->error);
         else
             message_.clear();
+        const QFileInfo file(files_.at(index_));
+        const QString resolution = image_.isNull() ? QString()
+            : tr(" - %1 \u00d7 %2").arg(image_.width()).arg(image_.height());
+        setWindowTitle(tr("%1 (%2/%3)%4 - Image Viewer - Left / Right to navigate")
+                           .arg(file.absoluteDir().dirName() + QLatin1Char('/') + file.fileName())
+                           .arg(index_ + 1).arg(files_.size()).arg(resolution));
         fitWindowToImage();
         update();
     }
