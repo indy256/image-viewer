@@ -7,8 +7,6 @@
 #include <QKeyEvent>
 #include <QMap>
 #include <QMouseEvent>
-#include <QMutex>
-#include <QMutexLocker>
 #include <QPainter>
 #include <QScreen>
 #include <QSet>
@@ -408,11 +406,7 @@ private:
             pending_.insert(path);
             const FileStamp stamp = stamps_.value(path);
             workers_.start([this, path, stamp] {
-                // The JasPer-backed Qt plugin initializes global codec state per read.
-                // Serialize JP2 decoding while JPEG decoding remains concurrent.
-                static QMutex jp2Mutex;
                 const bool jp2 = QFileInfo(path).suffix().compare("jp2", Qt::CaseInsensitive) == 0;
-                QMutexLocker lock(jp2 ? &jp2Mutex : nullptr);
                 QImageReader reader(path, jp2 ? "jp2" : "jpeg");
                 reader.setAutoTransform(true);
                 CachedImage result{reader.read(), reader.errorString()};

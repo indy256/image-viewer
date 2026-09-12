@@ -85,9 +85,8 @@ Usage, invalid-startup-path, and empty-folder views use `Image Viewer` as the ti
 
 - Cache decoded images at full resolution for the current file and up to 100
   preceding and 100 following files: a sliding range of up to 201 files.
-- Decode in background workers with at most two requests in flight. JP2 decoding
-  is serialized because its codec adapter manages global state; JPEG decoding
-  can run concurrently.
+- Decode JPEG and JP2 images in background workers with at most two requests
+  in flight. Each JP2 request uses an independent OpenJPEG decoder.
 - Prioritize the current selection, then its nearest neighbors.
 - Display cached images without waiting for disk access or decoding. Display a
   loading message when the selected image is not yet cached.
@@ -99,8 +98,9 @@ Usage, invalid-startup-path, and empty-folder views use `Image Viewer` as the ti
 
 Memory consumption depends on image dimensions; the cache has a file-count
 limit rather than a fixed memory budget. Image decoding uses a 1024 MiB allocation
-limit, also used for the JP2 codec's temporary workspace; this is separate from
-the cache budget. `QT_IMAGEIO_MAXALLOC` overrides the decoding limit in MiB.
+limit. JP2 decoding checks estimated raster and component-buffer sizes before
+decoding; OpenJPEG's internal working memory is additional. This is separate from
+the cache, and `QT_IMAGEIO_MAXALLOC` overrides the limit in MiB.
 Navigation to uncached images depends
 on storage and decoding speed. Closing the viewer waits for outstanding workers
 to finish safely.
@@ -125,9 +125,9 @@ first available image when files appear in the empty folder.
 
 The project uses C++17, CMake 3.21 or newer, and Qt 6.8 or newer with Widgets.
 The executable target is `iv`. Windows builds also link the system DWM library.
-JPEG 2000 support is compiled into the viewer from the Qt Image Formats 6.8.3
-JP2 plugin and JasPer 4.2.8. Initial configuration downloads checksum-verified
-source archives; subsequent builds reuse them. A C compiler is required for JasPer.
+JPEG 2000 support uses a static Qt image plugin backed by OpenJPEG 2.5.4.
+Initial configuration downloads the checksum-verified OpenJPEG source archive;
+subsequent builds reuse it. A C compiler is required to build the codec.
 
 With a suitable Qt installation configured:
 

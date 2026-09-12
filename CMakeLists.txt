@@ -29,46 +29,49 @@ include(FetchContent)
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
-FetchContent_Declare(jasper
-    URL https://github.com/jasper-software/jasper/archive/refs/tags/version-4.2.8.tar.gz
-    URL_HASH SHA256=987e8c8b4afcff87553833b6f0fa255b5556a0ecc617b45ee1882e10c1b5ec14
+FetchContent_Declare(openjpeg
+    URL https://github.com/uclouvain/openjpeg/archive/refs/tags/v2.5.4.tar.gz
+    URL_HASH SHA256=a695fbe19c0165f295a8531b1e4e855cd94d0875d2f88ec4b61080677e27188a
     SOURCE_SUBDIR unused
 )
-FetchContent_Declare(qtimageformats
-    URL https://github.com/qt/qtimageformats/archive/refs/tags/v6.8.3.tar.gz
-    URL_HASH SHA256=ad5039af9382395641e68905e26d5e29c6fd4e02a93214c8c9df3ef88c16a26f
-    SOURCE_SUBDIR unused
-)
-FetchContent_MakeAvailable(jasper qtimageformats)
-set(JAS_ENABLE_SHARED OFF CACHE BOOL "" FORCE)
-set(JAS_ENABLE_PROGRAMS OFF CACHE BOOL "" FORCE)
-set(JAS_ENABLE_DOC OFF CACHE BOOL "" FORCE)
-set(JAS_ENABLE_LIBJPEG OFF CACHE BOOL "" FORCE)
-set(JAS_ENABLE_LIBHEIF OFF CACHE BOOL "" FORCE)
-set(JAS_ENABLE_OPENGL OFF CACHE BOOL "" FORCE)
-set(JAS_ENABLE_MULTITHREADING_SUPPORT OFF CACHE BOOL "" FORCE)
-foreach(codec IN ITEMS BMP JPG HEIC MIF PGX PNM RAS)
-    set(JAS_INCLUDE_${codec}_CODEC OFF CACHE BOOL "" FORCE)
-endforeach()
-function(add_bundled_jasper)
-    # JasPer checks the top-level paths, so it rejects our usual -B build layout.
-    # Its own source and binary directories remain separate under build/_deps.
-    set(ALLOW_IN_SOURCE_BUILD ON)
-    add_subdirectory(${jasper_SOURCE_DIR} ${jasper_BINARY_DIR} EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(openjpeg)
+function(add_bundled_openjpeg)
+    set(BUILD_SHARED_LIBS OFF)
+    set(BUILD_STATIC_LIBS ON)
+    set(BUILD_CODEC OFF)
+    set(BUILD_TESTING OFF)
+    set(BUILD_DOC OFF)
+    set(BUILD_JPIP OFF)
+    set(BUILD_JAVA OFF)
+    set(BUILD_VIEWER OFF)
+    # Remove legacy cache defaults introduced by OpenJPEG after configuring it.
+    foreach(variable IN ITEMS EXECUTABLE_OUTPUT_PATH LIBRARY_OUTPUT_PATH)
+        if(NOT DEFINED CACHE{${variable}})
+            list(APPEND temporary_cache_variables ${variable})
+        endif()
+    endforeach()
+    set(EXECUTABLE_OUTPUT_PATH "${openjpeg_BINARY_DIR}/bin")
+    set(LIBRARY_OUTPUT_PATH "${openjpeg_BINARY_DIR}/bin")
+    add_subdirectory(${openjpeg_SOURCE_DIR} ${openjpeg_BINARY_DIR} EXCLUDE_FROM_ALL)
+    foreach(variable IN LISTS temporary_cache_variables)
+        unset(${variable} CACHE)
+    endforeach()
 endfunction()
-add_bundled_jasper()
-set_target_properties(libjasper PROPERTIES AUTOMOC OFF AUTOUIC OFF)
-set(jp2_source_dir ${qtimageformats_SOURCE_DIR}/src/plugins/imageformats/jp2)
-qt_add_plugin(iv_jp2 STATIC CLASS_NAME QJp2Plugin
-    ${jp2_source_dir}/main.cpp
-    ${jp2_source_dir}/qjp2handler.cpp
-    ${jp2_source_dir}/qjp2handler_p.h
+add_bundled_openjpeg()
+set_target_properties(openjp2 PROPERTIES AUTOMOC OFF AUTOUIC OFF POSITION_INDEPENDENT_CODE ON)
+# Use OpenJPEG's color converters; ICC handling is provided by Qt.
+file(WRITE ${openjpeg_BINARY_DIR}/opj_apps_config.h "/* No optional application dependencies. */\n")
+qt_add_plugin(iv_jp2 STATIC CLASS_NAME OpenJpegPlugin
+    jp2plugin.cpp
+    ${openjpeg_SOURCE_DIR}/src/bin/common/color.c
 )
 target_include_directories(iv_jp2 PRIVATE
-    ${jasper_SOURCE_DIR}/src/libjasper/include
-    ${jasper_BINARY_DIR}/src/libjasper/include
+    ${openjpeg_SOURCE_DIR}/src/lib/openjp2
+    ${openjpeg_BINARY_DIR}/src/lib/openjp2
+    ${openjpeg_SOURCE_DIR}/src/bin/common
+    ${openjpeg_BINARY_DIR}
 )
-target_link_libraries(iv_jp2 PRIVATE Qt6::Gui libjasper)
+target_link_libraries(iv_jp2 PRIVATE Qt6::Gui openjp2)
 
 qt_add_executable(iv
     WIN32
@@ -122,7 +125,7 @@ if(IMAGE_VIEWER_BUILD_TESTS)
         endif()
     endif()
     add_test(NAME image-formats COMMAND iv_image_tests
-        ${qtimageformats_SOURCE_DIR}/tests/shared/images/jp2/logo.jp2)
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
     if(NOT WIN32)
         set_tests_properties(image-formats PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     endif()
@@ -141,10 +144,8 @@ if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
     install(SCRIPT ${deploy_script})
 endif()
 install(FILES README.md DESTINATION .)
-install(FILES ${jasper_SOURCE_DIR}/LICENSE.txt
-    DESTINATION licenses RENAME JasPer.txt)
-install(FILES ${qtimageformats_SOURCE_DIR}/LICENSES/LGPL-3.0-only.txt
-    DESTINATION licenses RENAME QtImageFormats-LGPL-3.0.txt)
+install(FILES ${openjpeg_SOURCE_DIR}/LICENSE
+    DESTINATION licenses RENAME OpenJPEG.txt)
 
 set(CPACK_PACKAGE_NAME "iv")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG and JPEG 2000 viewer")

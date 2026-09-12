@@ -9,7 +9,9 @@
 #include <QTemporaryDir>
 #include <QThread>
 #include <functional>
+#include <future>
 #include <iostream>
+#include <vector>
 
 static void require(bool condition, const char *message)
 {
@@ -55,30 +57,53 @@ int main(int argc, char **argv)
     QApplication app(argc, argv);
     QImageReader::setAllocationLimit(1024);
     require(QImageReader::supportedImageFormats().contains("jp2"), "JP2 plugin not linked");
-    require(app.arguments().size() == 2, "Missing reference JP2 fixture");
-    QImageReader reference(app.arguments().at(1), "jp2");
-    require(reference.read().size() == QSize(498, 80), "Reference JP2 fixture failed to decode");
+    require(app.arguments().size() == 2, "Missing JP2 fixture directory");
+    QImageReader reference(QDir(app.arguments().at(1)).filePath("red.jp2"), "jp2");
+    require(reference.read().size() == QSize(64, 48), "Reference JP2 fixture failed to decode");
     require(QImage::fromData(QByteArray("invalid JP2"), "jp2").isNull(),
             "Corrupt JP2 should fail decoding");
     QImage red(64, 48, QImage::Format_RGB32);
     red.fill(Qt::red);
     QImage blue(64, 48, QImage::Format_RGB32);
     blue.fill(Qt::blue);
-    const QByteArray redJp2 = encode(red, "jp2");
-    const QByteArray blueJp2 = encode(blue, "jp2");
+    auto fixture = [&](const QString &name) {
+        QFile file(QDir(app.arguments().at(1)).filePath(name));
+        require(file.open(QIODevice::ReadOnly), "Cannot open JP2 fixture");
+        return file.readAll();
+    };
+    const QByteArray redJp2 = fixture("red.jp2");
+    const QByteArray blueJp2 = fixture("blue.jp2");
     const QByteArray jpeg = encode(red, "jpeg");
     const QImage roundTrip = QImage::fromData(redJp2, "jp2");
     require(roundTrip.size() == red.size() && roundTrip.pixelColor(32, 24) == QColor(Qt::red),
             "RGB JP2 decoding failed");
-    QImage gray(64, 48, QImage::Format_Indexed8);
-    QList<QRgb> grayscale;
-    for (int i = 0; i < 256; ++i)
-        grayscale.append(qRgb(i, i, i));
-    gray.setColorTable(grayscale);
-    gray.fill(128);
-    const QImage decodedGray = QImage::fromData(encode(gray, "jp2"), "jp2");
+    const QImage decodedGray = QImage::fromData(fixture("gray.jp2"), "jp2");
     require(!decodedGray.isNull() && decodedGray.pixelColor(32, 24) == QColor(128, 128, 128),
             "Grayscale JP2 decoding failed");
+    auto checkPixel = [&](const QString &name, QColor expected) {
+        const QImage image = QImage::fromData(fixture(name), "jp2");
+        require(image.size() == QSize(4,4) && image.pixelColor(2,2) == expected,
+                qPrintable("Pixel conversion failed: " + name));
+    };
+    checkPixel("rgba.jp2", QColor(200,100,50,128));
+    checkPixel("gray16.jp2", QColor(128,128,128));
+    checkPixel("signed16.jp2", QColor(0,0,0));
+    checkPixel("sycc420.jp2", QColor(128,128,128));
+    checkPixel("cmyk.jp2", QColor(255,0,0));
+    std::vector<std::future<bool>> decodes;
+    for (int i = 0; i < 8; ++i) {
+        decodes.push_back(std::async(std::launch::async, [redJp2, blueJp2] {
+            for (int j = 0; j < 20; ++j) {
+                const bool red = j % 2 == 0;
+                const QImage image = QImage::fromData(red ? redJp2 : blueJp2, "jp2");
+                if (image.isNull() || image.pixelColor(32,24) != QColor(red ? Qt::red : Qt::blue))
+                    return false;
+            }
+            return true;
+        }));
+    }
+    for (auto &decode : decodes)
+        require(decode.get(), "Concurrent JP2 decoding failed");
 
     QTemporaryDir folder;
     require(folder.isValid(), "Cannot create temporary directory");

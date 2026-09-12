@@ -15,7 +15,7 @@ image to move the window, and press Esc to exit. Your window size and position a
 remembered when switching modes.
 
 Build with the local Qt 6.11.2 / MinGW installation. Initial configuration downloads
-the pinned Qt JPEG 2000 plugin source and JasPer codec; both are linked into the
+the pinned OpenJPEG codec source, which is linked into the
 viewer, so JP2 support needs no extra runtime installation:
 
 ```powershell
