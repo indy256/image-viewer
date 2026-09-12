@@ -58,7 +58,34 @@ int main(int argc, char **argv)
     QImageReader::setAllocationLimit(1024);
     require(QImageReader::supportedImageFormats().contains("jp2"), "JP2 plugin not linked");
     require(QImageReader::supportedImageFormats().contains("webp"), "WebP plugin not linked");
-    require(app.arguments().size() == 2, "Missing JP2 fixture directory");
+    require(QImageReader::supportedImageFormats().contains("heic"), "HEIC plugin not linked");
+    require(app.arguments().size() == 3, "Missing fixture directories");
+    auto heicFixture = [&](const QString &name) {
+        QFile file(QDir(app.arguments().at(2)).filePath(name));
+        require(file.open(QIODevice::ReadOnly), "Cannot open HEIC fixture");
+        return file.readAll();
+    };
+    const QByteArray heic = heicFixture("rainbow-451x461.heic");
+    const QImage decodedHeic = QImage::fromData(heic, "heic");
+    require(decodedHeic.size() == QSize(451, 461), "HEIC decoding failed");
+    require(QImage::fromData(heic, "heif").size() == decodedHeic.size(), "HEIF alias failed");
+    require(QImage::fromData(heic.left(64), "heic").isNull(), "Truncated HEIC should fail");
+    require(QImage::fromData(heicFixture("clap_cropped.heic"), "heic").size() == QSize(64,64),
+            "HEIC crop was not applied");
+    const QImage alphaHeic = QImage::fromData(heicFixture("with-alpha-512x512.heic"), "heic");
+    require(alphaHeic.size() == QSize(512,512), "HEIC alpha fixture failed to decode");
+    bool transparentPixel = false;
+    for (int y = 0; y < alphaHeic.height(); ++y)
+        for (int x = 0; x < alphaHeic.width(); ++x)
+            transparentPixel |= alphaHeic.pixelColor(x,y).alpha() < 255;
+    require(transparentPixel, "HEIC transparency was lost");
+    std::vector<std::future<QImage>> heicDecodes;
+    for (int i = 0; i < 4; ++i)
+        heicDecodes.push_back(std::async(std::launch::async, [heic] {
+            return QImage::fromData(heic, "heic");
+        }));
+    for (auto &decode : heicDecodes)
+        require(decode.get() == decodedHeic, "Concurrent HEIC decoding failed");
     QImageReader reference(QDir(app.arguments().at(1)).filePath("red.jp2"), "jp2");
     require(reference.read().size() == QSize(64, 48), "Reference JP2 fixture failed to decode");
     require(QImage::fromData(QByteArray("invalid JP2"), "jp2").isNull(),
@@ -195,5 +222,21 @@ int main(int argc, char **argv)
     webpViewer.show();
     require(waitFor([&] { return webpViewer.grab().toImage().pixelColor(160,120) == QColor(Qt::red); }),
             "Opening WebP from command line failed");
-    std::cout << "PASS: JP2/WebP decoding, mixed navigation, preloading, live updates, corrupt file recovery\n";
+    const QString heicPath = folder.filePath(QString::fromUtf8("f-\xD1\x84\xD0\xBE\xD1\x82\xD0\xBE.HEIC"));
+    writeFile(heicPath, heic);
+    require(waitFor([&] { return viewer.windowTitle().contains("/17)"); }),
+            "Added uppercase HEIC file was not discovered");
+    wheel(-120);
+    require(waitFor([&] { return viewer.windowTitle().contains("(17/17)")
+        && viewer.windowTitle().contains(QString::fromUtf8("451 \xC3\x97 461")); }),
+            "Navigation to HEIC failed");
+    ImageViewer heicViewer({"iv", heicPath});
+    heicViewer.resize(320, 240);
+    heicViewer.show();
+    require(waitFor([&] { return heicViewer.windowTitle().contains(QString::fromUtf8("451 \xC3\x97 461")); }),
+            "Opening HEIC from command line failed");
+    writeFile(heicPath, heicFixture("clap_cropped.heic"));
+    require(waitFor([&] { return viewer.windowTitle().contains(QString::fromUtf8("64 \xC3\x97 64")); }),
+            "Changed HEIC was not reloaded");
+    std::cout << "PASS: JP2/WebP/HEIC decoding, mixed navigation, preloading, live updates, corrupt file recovery\n";
 }

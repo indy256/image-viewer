@@ -33,13 +33,13 @@ public:
         setMinimumSize(1, 1);
         setWindowTitle(tr("Image Viewer"));
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.jpg|file.jp2|file.webp>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
+            message_ = tr("Usage: iv <file.jpg|file.jp2|file.webp|file.heic|file.heif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
             return;
         }
 
         const QFileInfo initial(arguments.at(1));
         if (!initial.isFile() || !isSupportedImage(initial)) {
-            message_ = tr("Not a supported image file (JPEG, JP2 or WebP): %1").arg(arguments.at(1));
+            message_ = tr("Not a supported image file (JPEG, JP2, WebP or HEIC/HEIF): %1").arg(arguments.at(1));
             return;
         }
 
@@ -276,7 +276,7 @@ private:
         if (files_.isEmpty()) {
             index_ = -1;
             image_ = QImage();
-            message_ = tr("No JPEG, JP2 or WebP files in this folder. Waiting for images...");
+            message_ = tr("No JPEG, JP2, WebP or HEIC/HEIF files in this folder. Waiting for images...");
             setWindowTitle(tr("Image Viewer"));
             update();
             return;
@@ -374,7 +374,9 @@ private:
         return suffix.compare(QStringLiteral("jpg"), Qt::CaseInsensitive) == 0
             || suffix.compare(QStringLiteral("jpeg"), Qt::CaseInsensitive) == 0
             || suffix.compare(QStringLiteral("jp2"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("webp"), Qt::CaseInsensitive) == 0;
+            || suffix.compare(QStringLiteral("webp"), Qt::CaseInsensitive) == 0
+            || suffix.compare(QStringLiteral("heic"), Qt::CaseInsensitive) == 0
+            || suffix.compare(QStringLiteral("heif"), Qt::CaseInsensitive) == 0;
     }
 
     void loadImage()

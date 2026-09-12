@@ -107,12 +107,64 @@ qt_add_plugin(iv_webp STATIC CLASS_NAME QWebpPlugin
 target_include_directories(iv_webp PRIVATE ${libwebp_SOURCE_DIR}/src)
 target_link_libraries(iv_webp PRIVATE Qt6::Gui webp webpdemux libwebpmux)
 
+FetchContent_Declare(libde265
+    URL https://github.com/strukturag/libde265/archive/refs/tags/v1.1.2.tar.gz
+    URL_HASH SHA256=982f7838cc25aa6bda7fd33b9b3a05621d0f9b8456dc495d5fb4977fed6dcdbc
+    SOURCE_SUBDIR unused
+)
+FetchContent_Declare(libheif
+    URL https://github.com/strukturag/libheif/archive/refs/tags/v1.23.4.tar.gz
+    URL_HASH SHA256=ce7739356637b7371dcc0ae876027f6f692de9c9ace8cd0e9ed8d79a01ea61fe
+    SOURCE_SUBDIR unused
+)
+FetchContent_MakeAvailable(libde265 libheif)
+function(add_bundled_heic)
+    set(BUILD_SHARED_LIBS OFF)
+    set(CMAKE_AUTOMOC OFF)
+    set(CMAKE_AUTOUIC OFF)
+    foreach(feature IN ITEMS SDL DECODER ENCODER SHERLOCK265 INTERNAL_DEVELOPMENT_TOOLS)
+        set(ENABLE_${feature} OFF)
+    endforeach()
+    set(WITH_FUZZERS OFF)
+    add_subdirectory(${libde265_SOURCE_DIR} ${libde265_BINARY_DIR} EXCLUDE_FROM_ALL)
+    target_compile_definitions(de265 INTERFACE LIBDE265_STATIC_BUILD)
+    target_include_directories(de265 INTERFACE
+        $<BUILD_INTERFACE:${libde265_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${libde265_BINARY_DIR}>
+    )
+    # Let libheif find the bundled target before looking for an installed codec.
+    set(LIBDE265_DIR ${libde265_BINARY_DIR}/bundled-config)
+    file(MAKE_DIRECTORY ${LIBDE265_DIR})
+    file(WRITE ${LIBDE265_DIR}/LIBDE265Config.cmake
+        "set(LIBDE265_FOUND TRUE)\nset(LIBDE265_LIBRARIES de265)\nset(LIBDE265_INCLUDE_DIRS \"${libde265_SOURCE_DIR}\" \"${libde265_BINARY_DIR}\")\n")
+    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+    set(WITH_LIBDE265 ON)
+    set(WITH_LIBDE265_PLUGIN OFF)
+    foreach(codec IN ITEMS X265 KVAZAAR UVG266 VVDEC VVENC X264 OpenH264_DECODER
+            DAV1D AOM_DECODER AOM_ENCODER SvtEnc RAV1E JPEG_DECODER JPEG_ENCODER
+            OpenJPEG_ENCODER OpenJPEG_DECODER FFMPEG_DECODER OPENJPH_ENCODER
+            UNCOMPRESSED_CODEC WEBCODECS LIBSHARPYUV)
+        set(WITH_${codec} OFF)
+    endforeach()
+    set(ENABLE_PLUGIN_LOADING OFF)
+    set(WITH_EXAMPLES OFF)
+    set(WITH_GDK_PIXBUF OFF)
+    set(WITH_HEADER_COMPRESSION OFF)
+    set(BUILD_TESTING OFF)
+    set(BUILD_DOCUMENTATION OFF)
+    add_subdirectory(${libheif_SOURCE_DIR} ${libheif_BINARY_DIR} EXCLUDE_FROM_ALL)
+endfunction()
+add_bundled_heic()
+qt_add_plugin(iv_heic STATIC CLASS_NAME HeicPlugin heicplugin.cpp)
+target_include_directories(iv_heic PRIVATE ${libheif_SOURCE_DIR}/libheif/api ${libheif_BINARY_DIR})
+target_link_libraries(iv_heic PRIVATE Qt6::Gui heif)
+
 qt_add_executable(iv
     WIN32
     MACOSX_BUNDLE
     main.cpp
 )
-target_link_libraries(iv PRIVATE Qt6::Widgets iv_jp2 iv_webp)
+target_link_libraries(iv PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic)
 if(WIN32)
     target_link_libraries(iv PRIVATE dwmapi)
 endif()
@@ -148,7 +200,7 @@ option(IMAGE_VIEWER_BUILD_TESTS "Build image-format integration tests" OFF)
 if(IMAGE_VIEWER_BUILD_TESTS)
     enable_testing()
     qt_add_executable(iv_image_tests tests/image-formats.cpp)
-    target_link_libraries(iv_image_tests PRIVATE Qt6::Widgets iv_jp2 iv_webp)
+    target_link_libraries(iv_image_tests PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic)
     if(WIN32)
         target_link_libraries(iv_image_tests PRIVATE dwmapi)
     endif()
@@ -159,7 +211,7 @@ if(IMAGE_VIEWER_BUILD_TESTS)
         endif()
     endif()
     add_test(NAME image-formats COMMAND iv_image_tests
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/data ${libheif_SOURCE_DIR}/tests/data)
     if(NOT WIN32)
         set_tests_properties(image-formats PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     endif()
@@ -185,8 +237,10 @@ install(FILES ${libwebp_SOURCE_DIR}/COPYING ${libwebp_SOURCE_DIR}/PATENTS
     DESTINATION licenses/libwebp)
 install(DIRECTORY ${qtimageformats_SOURCE_DIR}/LICENSES/
     DESTINATION licenses/QtImageFormats)
+install(FILES ${libheif_SOURCE_DIR}/COPYING DESTINATION licenses RENAME libheif.txt)
+install(FILES ${libde265_SOURCE_DIR}/COPYING DESTINATION licenses RENAME libde265.txt)
 
 set(CPACK_PACKAGE_NAME "iv")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG, JPEG 2000 and WebP viewer")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG, JPEG 2000, WebP and HEIC viewer")
 set(CPACK_VERBATIM_VARIABLES ON)
 include(CPack)
