@@ -14,17 +14,28 @@ qt_add_executable(image-viewer
     main.cpp
 )
 target_link_libraries(image-viewer PRIVATE Qt6::Widgets)
+get_target_property(qt_library_type Qt6::Core TYPE)
+if(qt_library_type STREQUAL "STATIC_LIBRARY")
+    qt_import_plugins(image-viewer
+        INCLUDE_BY_TYPE imageformats Qt6::QJpegPlugin
+    )
+    if(MINGW)
+        target_link_options(image-viewer PRIVATE -static)
+    endif()
+endif()
 
 install(TARGETS image-viewer
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-qt_generate_deploy_app_script(
-    TARGET image-viewer
-    OUTPUT_SCRIPT deploy_script
-    NO_TRANSLATIONS
-)
-install(SCRIPT ${deploy_script})
+if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
+    qt_generate_deploy_app_script(
+        TARGET image-viewer
+        OUTPUT_SCRIPT deploy_script
+        NO_TRANSLATIONS
+    )
+    install(SCRIPT ${deploy_script})
+endif()
 install(FILES README.md DESTINATION .)
 
 set(CPACK_PACKAGE_NAME "image-viewer")

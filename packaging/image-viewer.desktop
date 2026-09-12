@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=JPEG Viewer
+Exec=image-viewer %f
+Icon=image-viewer
+Categories=Graphics;Viewer;
+MimeType=image/jpeg;
+Terminal=false
