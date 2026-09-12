@@ -1,5 +1,7 @@
 # JPEG Viewer
 
+[![Build](https://github.com/indy256/image-viewer/actions/workflows/build.yml/badge.svg)](https://github.com/indy256/image-viewer/actions/workflows/build.yml)
+
 A single-window Qt Widgets application that opens in full-screen mode. Launch with a JPEG filename:
 
 ```powershell
