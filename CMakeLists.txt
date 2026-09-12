@@ -9,6 +9,16 @@ option(IMAGE_VIEWER_STATIC_RUNTIME "Link MinGW Qt dependencies statically" OFF)
 if(MINGW AND IMAGE_VIEWER_STATIC_RUNTIME)
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
     set(PKG_CONFIG_ARGN --static)
+    # MSYS2's font CMake packages select shared HarfBuzz and omit some
+    # FreeType dependencies. pkg-config supplies the complete static link set.
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(STATIC_FONTS REQUIRED IMPORTED_TARGET harfbuzz freetype2)
+    foreach(font_library IN ITEMS Freetype Harfbuzz)
+        add_library(WrapSystem${font_library}::WrapSystem${font_library} INTERFACE IMPORTED)
+        target_link_libraries(WrapSystem${font_library}::WrapSystem${font_library}
+            INTERFACE PkgConfig::STATIC_FONTS
+        )
+    endforeach()
 endif()
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets)
