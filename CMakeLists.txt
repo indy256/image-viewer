@@ -30,6 +30,9 @@ qt_add_executable(iv
     main.cpp
 )
 target_link_libraries(iv PRIVATE Qt6::Widgets)
+if(WIN32)
+    target_link_libraries(iv PRIVATE dwmapi)
+endif()
 
 option(IMAGE_VIEWER_LTO "Enable link-time optimization for release builds" ${WIN32})
 if(IMAGE_VIEWER_LTO)

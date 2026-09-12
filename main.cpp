@@ -20,6 +20,7 @@
 
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
+#include <dwmapi.h>
 #endif
 
 class ImageViewer final : public QWidget
@@ -60,6 +61,10 @@ public:
         windowedState_ = windowState();
         windowedGeometry_ = isMaximized() ? normalGeometry() : geometry();
         fitPending_ = false;
+        // Set the platform flag before Qt calculates fullscreen geometry.
+        // QWindow flags preserve the native window and mouse click tracking.
+        winId();
+        windowHandle()->setFlag(Qt::FramelessWindowHint, true);
         showFullScreen();
         refreshNativeFrame();
     }
@@ -70,6 +75,7 @@ public:
         if (isFullScreen()) {
             const QRect screenArea = screen()->availableGeometry();
             showNormal();
+            windowHandle()->setFlag(Qt::FramelessWindowHint, false);
             refreshNativeFrame();
             restoreWindowedGeometry();
             if (!firstWindowedSwitch_ && windowedState_.testFlag(Qt::WindowMaximized))
@@ -286,9 +292,29 @@ private:
         else
             style = (style & ~WS_POPUP) | WS_OVERLAPPEDWINDOW;
         SetWindowLongPtr(handle, GWL_STYLE, style);
+        // DWM can draw a separate thin border even without WS_BORDER.
+        const DWMNCRENDERINGPOLICY rendering = isFullScreen()
+            ? DWMNCRP_DISABLED : DWMNCRP_USEWINDOWSTYLE;
+        DwmSetWindowAttribute(handle, DWMWA_NCRENDERING_POLICY,
+                             &rendering, sizeof(rendering));
+        // Windows 11 border-color attribute; older Windows ignores it.
+        // Numeric constants also support the older local MinGW headers.
+        constexpr DWORD borderColorAttribute = 34; // DWMWA_BORDER_COLOR
+        const COLORREF borderColor = isFullScreen() ? 0xfffffffe : 0xffffffff;
+        DwmSetWindowAttribute(handle, borderColorAttribute,
+                             &borderColor, sizeof(borderColor));
+        constexpr DWORD cornerPreferenceAttribute = 33; // DWMWA_WINDOW_CORNER_PREFERENCE
+        const DWORD cornerPreference = isFullScreen() ? 1 : 0; // DONOTROUND / DEFAULT
+        DwmSetWindowAttribute(handle, cornerPreferenceAttribute,
+                             &cornerPreference, sizeof(cornerPreference));
         SetWindowPos(handle, nullptr, 0, 0, 0, 0,
                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE
                          | SWP_FRAMECHANGED);
+        if (!isFullScreen()) {
+            // Re-enabling DWM decorations does not refresh their active state.
+            // Redraw the caption using actual focus without activating the app.
+            SendMessage(handle, WM_NCACTIVATE, GetForegroundWindow() == handle, 0);
+        }
 #endif
     }
 
