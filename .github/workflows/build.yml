@@ -9,6 +9,52 @@ permissions:
   contents: read
 
 jobs:
+  windows-fast:
+    name: Build (Windows x64, prebuilt Qt, no LTO)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install prebuilt Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.2'
+          arch: win64_msvc2022_64
+          archives: qtbase
+          cache: true
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install assembler
+        shell: pwsh
+        run: |
+          choco install nasm --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "$env:ProgramFiles\NASM" >> $env:GITHUB_PATH
+
+      - name: Build and deploy portable application
+        shell: pwsh
+        run: |
+          & "$env:QT_ROOT_DIR/bin/qt-cmake.bat" -S . -B build-fast -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DIMAGE_VIEWER_LTO=OFF -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DIMAGE_VIEWER_STATIC_RUNTIME=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build-fast --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --install build-fast --prefix "$PWD/dist/windows-x64-fast"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload portable application
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-x64-fast
+          path: dist/windows-x64-fast/
+          compression-level: 0
+          if-no-files-found: error
+
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
