@@ -428,7 +428,7 @@ private:
 
     void preload()
     {
-        // Keep only two decodes in flight. Recompute priorities after each result
+        // Bound concurrent decodes. Recompute priorities after each result
         // so rapid navigation never leaves a long queue of obsolete work.
         auto schedule = [this](qsizetype index) {
             if (pending_.size() >= maxPendingDecodes_ || !inCacheRange(index))
@@ -462,8 +462,8 @@ private:
         }
     }
 
-    static constexpr qsizetype preloadRadius_ = 100;
-    static constexpr qsizetype maxPendingDecodes_ = 2;
+    static constexpr qsizetype preloadRadius_ = 5;
+    static constexpr qsizetype maxPendingDecodes_ = 5;
 
     bool dragPending_ = false;
     qint64 wheelRemainder_ = 0;

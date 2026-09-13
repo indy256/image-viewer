@@ -86,9 +86,9 @@ Usage, invalid-startup-path, and empty-folder views use `Image Viewer` as the ti
 
 ## Preloading and responsiveness
 
-- Cache decoded images at full resolution for the current file and up to 100
-  preceding and 100 following files: a sliding range of up to 201 files.
-- Decode JPEG, JP2, WebP, HEIC, and AVIF images in background workers with at most two requests
+- Cache decoded images at full resolution for the current file and up to 5
+  preceding and 5 following files: a sliding range of up to 11 files.
+- Decode JPEG, JP2, WebP, HEIC, and AVIF images in background workers with at most five requests
   in flight. Each JP2 request uses an independent OpenJPEG decoder.
 - Prioritize the current selection, then its nearest neighbors.
 - Display cached images without waiting for disk access or decoding. Display a
@@ -167,8 +167,7 @@ newer systems. The macOS application is not Developer ID signed or notarized.
 
 GitHub Actions builds Release packages on `ubuntu-latest`, `windows-latest`, and
 `macos-latest` for pushes, pull requests, and manual workflow runs. Each build
-uploads its platform artifact and runs image-format integration tests. Windows CI checks runtime dependencies and startup
-without Qt on `PATH`.
+uploads its platform artifact. Windows CI checks runtime DLL dependencies.
 
 Pushing a version tag matching `v*` publishes the three deliverables to a GitHub
 Release after all platform builds succeed. An existing release for the tag is

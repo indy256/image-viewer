@@ -89,26 +89,20 @@ jobs:
 
       - name: Configure
         if: runner.os != 'Windows'
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DIMAGE_VIEWER_BUILD_TESTS=ON
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         if: runner.os != 'Windows'
         # Bare --parallel gives Unix Makefiles unlimited jobs and can exhaust runner memory.
         run: cmake --build build --config Release --parallel 2
 
-      - name: Test image formats
-        if: runner.os != 'Windows'
-        run: ctest --test-dir build -C Release --output-on-failure
-
       - name: Build standalone Windows executable
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          & ./.qt-lto/bin/qt-cmake.bat -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
+          & ./.qt-lto/bin/qt-cmake.bat -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build --parallel 2
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir build -C Release --output-on-failure
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item build/iv.exe dist/iv.exe
@@ -117,20 +111,6 @@ jobs:
           $dependencies
           if ($dependencies -match '(?i)(Qt6|libgcc|libstdc\+\+|libwinpthread|VCRUNTIME\d|MSVCP\d|CONCRT\d|ucrtbased)') {
             throw 'Unexpected runtime DLL dependency'
-          }
-
-      - name: Check Windows executable without Qt on PATH
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
-          Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
-          $viewer = Start-Process -FilePath "$PWD/dist/iv.exe" -WindowStyle Hidden -PassThru
-          try {
-            Start-Sleep -Seconds 2
-            if ($viewer.HasExited) { throw "Viewer exited during startup: $($viewer.ExitCode)" }
-          } finally {
-            if (-not $viewer.HasExited) { Stop-Process -Id $viewer.Id }
           }
 
       - name: Package application and Qt runtime

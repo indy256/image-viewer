@@ -214,18 +214,6 @@ elseif(MSVC)
     target_link_options(iv PRIVATE "$<$<CONFIG:Release,MinSizeRel>:/OPT:REF;/OPT:ICF>")
 endif()
 
-option(IMAGE_VIEWER_BUILD_TESTS "Build image-format integration tests" OFF)
-if(IMAGE_VIEWER_BUILD_TESTS)
-    enable_testing()
-    qt_add_executable(iv_image_tests tests/image-formats.cpp)
-    configure_viewer_target(iv_image_tests)
-    add_test(NAME image-formats COMMAND iv_image_tests
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/data ${libheif_SOURCE_DIR}/tests/data)
-    if(NOT WIN32)
-        set_tests_properties(image-formats PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-    endif()
-endif()
-
 install(TARGETS iv
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

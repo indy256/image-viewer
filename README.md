@@ -74,9 +74,8 @@ Ninja, Perl, and NASM on PATH, then use separate build and installation director
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/build-qt-windows.ps1 -Toolchain MSVC -WorkDirectory ../image-viewer-build/qt-msvc-lto -InstallDirectory ../image-viewer-build/qt-msvc-lto/install -Parallel 2
-& ../image-viewer-build/qt-msvc-lto/install/bin/qt-cmake.bat -S . -B ../image-viewer-build/iv-msvc-lto -G Ninja -DCMAKE_BUILD_TYPE=Release -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
+& ../image-viewer-build/qt-msvc-lto/install/bin/qt-cmake.bat -S . -B ../image-viewer-build/iv-msvc-lto -G Ninja -DCMAKE_BUILD_TYPE=Release -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON
 cmake --build ../image-viewer-build/iv-msvc-lto --parallel 2
-ctest --test-dir ../image-viewer-build/iv-msvc-lto -C Release --output-on-failure
 ```
 
 The MSVC variant uses unmodified Qt sources with LTO and a static compiler runtime
