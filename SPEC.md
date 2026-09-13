@@ -63,6 +63,8 @@ the screen edges and corners.
 
 Windowed mode has the platform title bar and resizable frame. On Windows, the
 title bar immediately reflects the actual activation state when restored.
+On Linux, returning to windowed mode requests foreground stacking and keyboard
+focus so the viewer remains accessible above other windows.
 
 The first switch to windowed mode centers the window on the available desktop.
 Once an image is decoded, its dimensions determine the initial client size,

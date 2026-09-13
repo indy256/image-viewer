@@ -126,6 +126,12 @@ public:
                     setFocus(Qt::OtherFocusReason);
                 }
             });
+#elif defined(Q_OS_LINUX)
+            // X11 can restore the pre-fullscreen stacking order. Request both
+            // stacking and focus after restoring the frame and geometry.
+            raise();
+            activateWindow();
+            setFocus(Qt::OtherFocusReason);
 #endif
         } else {
             enterFullScreen();
