@@ -47,25 +47,29 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y nasm perl
 
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Install Windows build tools
         if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-nasm
-            perl
+        shell: pwsh
+        run: |
+          choco install nasm --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "$env:ProgramFiles\NASM" >> $env:GITHUB_PATH
+          Get-Command cmake, ninja, perl, cl
 
       - name: Identify Windows toolchain
         if: runner.os == 'Windows'
         id: toolchain
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          echo "key=$(pacman -Q | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          $compilerHash = (Get-FileHash (Get-Command cl.exe).Source -Algorithm SHA256).Hash
+          $sdkVersion = $env:WindowsSDKVersion.TrimEnd('\')
+          "key=msvc-$env:VCToolsVersion-$sdkVersion-$compilerHash" >> $env:GITHUB_OUTPUT
 
       - name: Cache static Qt with LTO
         if: runner.os == 'Windows'
@@ -73,15 +77,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .qt-lto
-          key: qt-lto-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.key }}-${{ hashFiles('scripts/build-qt-windows.ps1', 'scripts/qt-mingw-lto.cmake') }}
+          key: qt-lto-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.key }}-${{ hashFiles('scripts/build-qt-windows.ps1') }}
 
       - name: Build static Qt with LTO
         if: runner.os == 'Windows' && steps.qt-lto.outputs.cache-hit != 'true'
-        shell: msys2 {0}
+        shell: pwsh
         run: >-
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-qt-windows.ps1
-          -WorkDirectory "$(cygpath -m "$RUNNER_TEMP/qt-lto")"
-          -InstallDirectory "$(cygpath -m "$GITHUB_WORKSPACE/.qt-lto")" -Parallel 2
+          -Toolchain MSVC -WorkDirectory "$env:RUNNER_TEMP/qt-lto"
+          -InstallDirectory "$env:GITHUB_WORKSPACE/.qt-lto" -Parallel 2
 
       - name: Configure
         if: runner.os != 'Windows'
@@ -98,18 +102,22 @@ jobs:
 
       - name: Build standalone Windows executable
         if: runner.os == 'Windows'
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/.qt-lto" -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
+          & ./.qt-lto/bin/qt-cmake.bat -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ctest --test-dir build -C Release --output-on-failure
-          mkdir -p dist
-          cp build/iv.exe dist/iv.exe
-          objdump -p dist/iv.exe | grep 'DLL Name:'
-          if objdump -p dist/iv.exe | grep -Ei 'DLL Name:.*(Qt6|libgcc|libstdc\+\+|libwinpthread)'; then
-            echo 'Unexpected runtime DLL dependency'
-            exit 1
-          fi
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item build/iv.exe dist/iv.exe
+          $dependencies = & dumpbin /DEPENDENTS dist/iv.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $dependencies
+          if ($dependencies -match '(?i)(Qt6|libgcc|libstdc\+\+|libwinpthread|VCRUNTIME\d|MSVCP\d|CONCRT\d|ucrtbased)') {
+            throw 'Unexpected runtime DLL dependency'
+          }
 
       - name: Check Windows executable without Qt on PATH
         if: runner.os == 'Windows'

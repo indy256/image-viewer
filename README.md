@@ -49,12 +49,12 @@ macOS packages are not Developer ID signed or notarized.
 
 Windows Release builds enable link-time optimization (LTO), optimize for size,
 and strip symbols with MinGW. Set `-DIMAGE_VIEWER_LTO=OFF` to disable LTO.
-Windows CI also builds Qt Base 6.11.2 statically with LTO and size optimization.
+Windows CI uses MSVC and builds Qt Base 6.11.2 statically with LTO and size optimization.
 The Qt installation is cached per toolchain and build-script version. Linux and
 macOS use prebuilt Qt. `IMAGE_VIEWER_LTO` controls the application build; Qt's
 LTO setting is determined when Qt itself is built.
 
-To build the same Windows Qt installation locally, use the MSYS2 UCRT64 toolchain
+For an alternative MinGW build locally, use the MSYS2 UCRT64 toolchain
 and put its GCC, CMake, Ninja, and Perl on PATH, then run:
 
 ```powershell
@@ -68,6 +68,19 @@ The script applies MinGW LTO workarounds to the downloaded Qt sources (bigobj an
 duplicate SIMD assembler macros) and disables GCC's problematic constructor/destructor decloning pass.
 Qt's Windows platform plugins, Widgets accessibility files, and widget-window implementation use native objects
 to avoid a MinGW LTO COMDAT-thunk bug; Core, Gui, and the remaining Widgets code use LTO.
+
+To reproduce the Windows CI build, open an x64 Visual Studio developer PowerShell with CMake,
+Ninja, Perl, and NASM on PATH, then use separate build and installation directories:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build-qt-windows.ps1 -Toolchain MSVC -WorkDirectory ../image-viewer-build/qt-msvc-lto -InstallDirectory ../image-viewer-build/qt-msvc-lto/install -Parallel 2
+& ../image-viewer-build/qt-msvc-lto/install/bin/qt-cmake.bat -S . -B ../image-viewer-build/iv-msvc-lto -G Ninja -DCMAKE_BUILD_TYPE=Release -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
+cmake --build ../image-viewer-build/iv-msvc-lto --parallel 2
+ctest --test-dir ../image-viewer-build/iv-msvc-lto -C Release --output-on-failure
+```
+
+The MSVC variant uses unmodified Qt sources with LTO and a static compiler runtime
+(`/MT`). Windows CI uses MSVC; the script also retains MinGW support.
 
 Pushing a version tag such as `v1.0.0` builds all three packages and publishes
 a GitHub Release with the standalone downloads attached, after every build succeeds:

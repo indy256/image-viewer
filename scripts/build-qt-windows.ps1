@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$WorkDirectory,
     [Parameter(Mandatory = $true)][string]$InstallDirectory,
-    [int]$Parallel = 2
+    [int]$Parallel = 2,
+    [ValidateSet('MinGW', 'MSVC')][string]$Toolchain = 'MinGW'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,8 +12,10 @@ $WorkDirectory = [IO.Path]::GetFullPath($WorkDirectory)
 $InstallDirectory = [IO.Path]::GetFullPath($InstallDirectory)
 New-Item -ItemType Directory -Force -Path $WorkDirectory | Out-Null
 $archive = Join-Path $WorkDirectory "qtbase-$version.tar.xz"
-$source = Join-Path $WorkDirectory "qtbase-everywhere-src-$version"
-$build = Join-Path $WorkDirectory 'qtbase-lto-build'
+$sourceRoot = Join-Path $WorkDirectory $Toolchain.ToLowerInvariant()
+New-Item -ItemType Directory -Force -Path $sourceRoot | Out-Null
+$source = Join-Path $sourceRoot "qtbase-everywhere-src-$version"
+$build = Join-Path $WorkDirectory "qtbase-$($Toolchain.ToLowerInvariant())-lto-build"
 $ltoOverrides = Join-Path $PSScriptRoot 'qt-mingw-lto.cmake'
 
 if (-not (Test-Path -LiteralPath $archive)) {
@@ -23,27 +26,32 @@ if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant
     throw 'Qt source checksum mismatch'
 }
 if (-not (Test-Path -LiteralPath "$source/configure.bat")) {
-    & "$env:SystemRoot/System32/tar.exe" -xf $archive -C $WorkDirectory
+    & "$env:SystemRoot/System32/tar.exe" -xf $archive -C $sourceRoot
     if ($LASTEXITCODE -ne 0) { throw 'Qt source extraction failed' }
 }
-# GCC's LTO plugin cannot read MinGW bigobj files. Slim LTO objects do not
-# need Qt's unconditional bigobj flag; retain normal COFF for LTO processing.
-$targetsFile = Join-Path $source 'cmake/QtInternalTargets.cmake'
-$targets = [IO.File]::ReadAllText($targetsFile)
-$bigobj = 'target_compile_options(PlatformCommonInternal INTERFACE -Wa,-mbig-obj)'
-if ($targets.Contains($bigobj)) {
-    [IO.File]::WriteAllText($targetsFile, $targets.Replace($bigobj,
-        '# bigobj disabled for the MinGW LTO build (see build-qt-windows.ps1).'))
-}
-# LTO combines translation units; define Qt's assembler macros only once per
-# assembler unit, while preserving its workaround for unaligned AVX accesses.
-$simdFile = Join-Path $source 'src/corelib/global/qsimd_p.h'
-$simd = [IO.File]::ReadAllText($simdFile)
-if (-not $simd.Contains('qt_mingw_avx_macros')) {
-    $simd = $simd.Replace('".macro vmovapd args:vararg\n"',
-        '".ifndef qt_mingw_avx_macros\n" " .set qt_mingw_avx_macros, 1\n" ".macro vmovapd args:vararg\n"')
-    $simd = [regex]::Replace($simd, '("    vmovdqu64 \\\\args\\n"\s*"\.endm\\n")', '$1 ".endif\n"')
-    [IO.File]::WriteAllText($simdFile, $simd)
+$compilerOptions = @('-DCMAKE_C_COMPILER=cl', '-DCMAKE_CXX_COMPILER=cl')
+if ($Toolchain -eq 'MinGW') {
+    $compilerOptions = @('-DCMAKE_C_COMPILER=gcc', '-DCMAKE_CXX_COMPILER=g++',
+        '-DCMAKE_CXX_FLAGS=-fno-declone-ctor-dtor', "-DCMAKE_PROJECT_QtBase_INCLUDE=$ltoOverrides")
+    # GCC's LTO plugin cannot read MinGW bigobj files. Slim LTO objects do not
+    # need Qt's unconditional bigobj flag; retain normal COFF for LTO processing.
+    $targetsFile = Join-Path $source 'cmake/QtInternalTargets.cmake'
+    $targets = [IO.File]::ReadAllText($targetsFile)
+    $bigobj = 'target_compile_options(PlatformCommonInternal INTERFACE -Wa,-mbig-obj)'
+    if ($targets.Contains($bigobj)) {
+        [IO.File]::WriteAllText($targetsFile, $targets.Replace($bigobj,
+            '# bigobj disabled for the MinGW LTO build (see build-qt-windows.ps1).'))
+    }
+    # LTO combines translation units; define Qt's assembler macros only once per
+    # assembler unit, while preserving its workaround for unaligned AVX accesses.
+    $simdFile = Join-Path $source 'src/corelib/global/qsimd_p.h'
+    $simd = [IO.File]::ReadAllText($simdFile)
+    if (-not $simd.Contains('qt_mingw_avx_macros')) {
+        $simd = $simd.Replace('".macro vmovapd args:vararg\n"',
+            '".ifndef qt_mingw_avx_macros\n" " .set qt_mingw_avx_macros, 1\n" ".macro vmovapd args:vararg\n"')
+        $simd = [regex]::Replace($simd, '("    vmovdqu64 \\\\args\\n"\s*"\.endm\\n")', '$1 ".endif\n"')
+        [IO.File]::WriteAllText($simdFile, $simd)
+    }
 }
 New-Item -ItemType Directory -Force -Path $build | Out-Null
 Push-Location $build
@@ -55,7 +63,7 @@ try {
         -no-feature-xml -no-feature-printsupport -no-feature-printpreviewwidget -no-feature-printer `
         -no-feature-zstd -no-feature-brotli -no-feature-windeployqt `
         -no-feature-system-libb2 -no-feature-openssl `
-        -- -DCMAKE_CXX_FLAGS=-fno-declone-ctor-dtor "-DCMAKE_PROJECT_QtBase_INCLUDE=$ltoOverrides"
+        -- @compilerOptions
     if ($LASTEXITCODE -ne 0) { throw 'Qt configure failed' }
     if (-not (Select-String -LiteralPath "$build/CMakeCache.txt" -Pattern '^QT_FEATURE_ltcg:INTERNAL=ON$|^QT_FEATURE_ltcg:INTERNAL=1$' -Quiet)) {
         throw 'Qt did not enable LTO'
@@ -67,3 +75,4 @@ try {
 } finally {
     Pop-Location
 }
+exit 0

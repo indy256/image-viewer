@@ -142,12 +142,15 @@ cmake --build build --config Release --parallel
 Windows Release and MinSizeRel builds enable link-time optimization by default,
 subject to a compiler-support check. `-DIMAGE_VIEWER_LTO=OFF` disables it. MinGW
 builds optimize for size and strip symbols; MSVC builds use size optimization and
-linker elimination of unused or identical code. Windows CI builds Qt Base 6.11.2
+linker elimination of unused or identical code. Windows CI uses MSVC to build Qt Base 6.11.2
 from checksum-verified sources with static linking, LTO, size optimization, and
 bundled dependencies. Its installation is cached by toolchain and build-script
 version. Linux and macOS retain prebuilt Qt.
-The Windows platform plugins, Widgets accessibility sources, and widget-window implementation are excluded
+With MinGW, the Windows platform plugins, Widgets accessibility sources, and widget-window implementation are excluded
 from LTO to avoid MinGW duplicate-thunk errors while preserving accessibility.
+The Qt build script also supports MSVC through `-Toolchain MSVC`, using separate
+sources and build directories, unmodified Qt sources, LTO, and the static runtime.
+`IMAGE_VIEWER_STATIC_RUNTIME=ON` selects `/MT` for the MSVC viewer and bundled codecs.
 
 Local runtime deployment follows the selected Qt installation: shared Qt requires
 its runtime libraries to accompany the executable. The Windows CI build uses
