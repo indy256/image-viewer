@@ -68,12 +68,12 @@ jobs:
           - os: ubuntu-latest
             qt-version: '6.8.3'
             package-format: TGZ
-            artifact-path: dist/iv.AppImage
+            artifact-path: dist/iv-Linux-X64.AppImage
           - os: windows-latest
             msvc-arch: x64
             qt-version: '6.11.2'
             package-format: ZIP
-            artifact-path: dist/iv.exe
+            artifact-path: dist/iv-Windows-X64.exe
           - os: windows-11-arm
             msvc-arch: arm64
             qt-version: '6.11.2'
@@ -217,7 +217,7 @@ jobs:
           curl -fL --retry 3 -o appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
           mkdir -p dist
-          ./appimagetool.AppImage AppDir dist/iv.AppImage
+          ./appimagetool.AppImage AppDir dist/iv-Linux-X64.AppImage
 
       - name: Upload binary
         uses: actions/upload-artifact@v7

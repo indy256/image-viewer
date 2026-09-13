@@ -35,11 +35,11 @@ cmake --build ../image-viewer-build
 
 Every CI build uploads standalone downloads in the workflow run's Artifacts section:
 
-- Windows x64: `iv.exe`, with Qt and the compiler runtime
+- Windows x64: `iv-Windows-X64.exe`, with Qt and the compiler runtime
   linked statically. No accompanying Qt DLLs or installation are needed.
 - Windows ARM64: `iv-Windows-ARM64.exe`, a native ARM64 executable with Qt
   and the compiler runtime linked statically.
-- Linux x64: `iv.AppImage`. Make it executable with `chmod +x`
+- Linux x64: `iv-Linux-X64.AppImage`. Make it executable with `chmod +x`
   and run it with an image filename. Qt is bundled inside the AppImage.
 - macOS ARM64: a ZIP containing `iv.app`, with its Qt frameworks and
   plugins inside the bundle. Extract it and run
