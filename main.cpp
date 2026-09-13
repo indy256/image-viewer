@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include <QApplication>
+#include "jpegloader.h"
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
@@ -502,9 +503,15 @@ private:
             pending_.insert(path);
             const FileStamp stamp = stamps_.value(path);
             workers_.start([this, path, stamp] {
-                QImageReader reader(path, imageFormat(QFileInfo(path)));
-                reader.setAutoTransform(true);
-                CachedImage result{reader.read(), reader.errorString()};
+                CachedImage result;
+                const QByteArray format = imageFormat(QFileInfo(path));
+                if (format == "jpeg") {
+                    result.image = loadJpeg(path, result.error);
+                } else {
+                    QImageReader reader(path, format);
+                    reader.setAutoTransform(true);
+                    result = {reader.read(), reader.errorString()};
+                }
                 QMetaObject::invokeMethod(this, [this, path, stamp, result = std::move(result)] {
                     pending_.remove(path);
                     const qsizetype index = files_.indexOf(path);

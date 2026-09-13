@@ -6,6 +6,7 @@ license notices retain those terms, including the skills under `.agents/`.
 
 | Dependency | Version | License information |
 | --- | --- | --- |
+| libjpeg-turbo | 3.1.3 | IJG, BSD-3-Clause, and zlib licenses; see `LICENSE.md` and `README.ijg`. |
 | Qt Core, Gui, Widgets and image-format plugins | Selected Qt installation; WebP handler from Qt Image Formats 6.8.3 | Qt files offer alternative licenses; the bundled WebP handler offers LGPL-3.0-only, GPL-2.0-only, GPL-3.0-only, or commercial terms. See the notices in the selected Qt sources. |
 | OpenJPEG | 2.5.4 | BSD-2-Clause; see its `LICENSE`, including the listed copyright holders. |
 | libwebp | 1.6.0 | BSD-3-Clause and the additional patent grant in `PATENTS`; see `COPYING`. |

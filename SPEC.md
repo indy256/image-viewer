@@ -136,6 +136,11 @@ The executable target is `iv`. Windows builds also link the system DWM library.
 JPEG 2000 support uses a static Qt image plugin backed by OpenJPEG 2.5.4.
 PNG uses Qt's built-in image reader, including transparency, without an additional
 image plugin. Transparent pixels show the viewer's background.
+JPEG loading uses a statically linked libjpeg-turbo 3.1.3 decoder with required
+SIMD acceleration. Each worker owns its decoder; RGB and grayscale images decode
+directly to display pixels, preserving ICC profiles and EXIF orientation. CMYK and
+higher-precision JPEGs use Qt's reader. The configured image allocation limit also
+bounds the accelerated output raster and, separately, decoder working buffers.
 Initial configuration downloads the checksum-verified OpenJPEG source archive;
 subsequent builds reuse it. A C compiler is required to build the codec.
 

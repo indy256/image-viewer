@@ -17,11 +17,62 @@ endif()
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets)
 qt_standard_project_setup(REQUIRES 6.8)
 
-# Build the JP2 decoder into the executable, including with shared Qt installs.
 include(FetchContent)
+include(ExternalProject)
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
+# Upstream requires a separate build. Require SIMD instead of silently falling
+# back to the scalar implementation shipped in Qt's bundled JPEG library.
+set(turbojpeg_root "${CMAKE_CURRENT_BINARY_DIR}/turbojpeg")
+if(MSVC)
+    set(turbojpeg_library "${turbojpeg_root}/lib/turbojpeg-static.lib")
+else()
+    set(turbojpeg_library "${turbojpeg_root}/lib/libturbojpeg.a")
+endif()
+set(turbojpeg_platform_options)
+foreach(variable IN ITEMS CMAKE_TOOLCHAIN_FILE CMAKE_OSX_ARCHITECTURES CMAKE_OSX_DEPLOYMENT_TARGET)
+    if(DEFINED ${variable} AND NOT "${${variable}}" STREQUAL "")
+        list(APPEND turbojpeg_platform_options "-D${variable}=${${variable}}")
+    endif()
+endforeach()
+if(MSVC)
+    if(IMAGE_VIEWER_STATIC_RUNTIME)
+        list(APPEND turbojpeg_platform_options -DWITH_CRT_DLL=OFF)
+    else()
+        list(APPEND turbojpeg_platform_options -DWITH_CRT_DLL=ON)
+    endif()
+endif()
+ExternalProject_Add(turbojpeg_build
+    URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.1.3.tar.gz
+    URL_HASH SHA256=3a13a5ba767dc8264bc40b185e41368a80d5d5f945944d1dbaa4b2fb0099f4e5
+    SOURCE_DIR "${turbojpeg_root}/src"
+    BINARY_DIR "${turbojpeg_root}/build"
+    CMAKE_ARGS
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DCMAKE_C_VISIBILITY_PRESET=hidden
+        -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${turbojpeg_root}/lib
+        -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE=${turbojpeg_root}/lib
+        -DENABLE_SHARED=OFF -DENABLE_STATIC=ON
+        -DWITH_TOOLS=OFF -DWITH_TESTS=OFF -DWITH_TURBOJPEG=ON
+        -DWITH_SIMD=ON -DREQUIRE_SIMD=ON
+        -DWITH_JPEG8=ON
+        ${turbojpeg_platform_options}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config Release --target turbojpeg-static --parallel 2
+    BUILD_BYPRODUCTS "${turbojpeg_library}"
+    INSTALL_COMMAND ""
+)
+file(MAKE_DIRECTORY "${turbojpeg_root}/src/src" "${turbojpeg_root}/build")
+add_library(iv_turbojpeg STATIC IMPORTED)
+set_target_properties(iv_turbojpeg PROPERTIES
+    IMPORTED_LOCATION "${turbojpeg_library}"
+    INTERFACE_INCLUDE_DIRECTORIES "${turbojpeg_root}/src/src;${turbojpeg_root}/build"
+)
+add_dependencies(iv_turbojpeg turbojpeg_build)
+
+# Build the JP2 decoder into the executable, including with shared Qt installs.
 FetchContent_Declare(openjpeg
     URL https://github.com/uclouvain/openjpeg/archive/refs/tags/v2.5.4.tar.gz
     URL_HASH SHA256=a695fbe19c0165f295a8531b1e4e855cd94d0875d2f88ec4b61080677e27188a
@@ -180,6 +231,7 @@ qt_add_executable(iv
     WIN32
     MACOSX_BUNDLE
     main.cpp
+    jpegloader.cpp
 )
 qt_add_resources(iv "iv_icons"
     PREFIX "/iv"
@@ -201,7 +253,7 @@ elseif(APPLE)
 endif()
 get_target_property(qt_library_type Qt6::Core TYPE)
 function(configure_viewer_target target)
-    target_link_libraries(${target} PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic)
+    target_link_libraries(${target} PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic iv_turbojpeg)
     if(WIN32)
         target_link_libraries(${target} PRIVATE dwmapi)
     endif()
@@ -272,6 +324,8 @@ if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
     install(SCRIPT ${deploy_script})
 endif()
 install(FILES README.md LICENSE THIRD_PARTY_NOTICES.md DESTINATION .)
+install(FILES "${turbojpeg_root}/src/LICENSE.md" "${turbojpeg_root}/src/README.ijg"
+    DESTINATION licenses/libjpeg-turbo)
 install(FILES ${openjpeg_SOURCE_DIR}/LICENSE
     DESTINATION licenses RENAME OpenJPEG.txt)
 
