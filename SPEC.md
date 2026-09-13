@@ -170,6 +170,8 @@ Linux packages target the Ubuntu version used by the build runner and compatible
 newer systems. The macOS application is not Developer ID signed or notarized.
 The Linux AppImage bundles `libOpenGL.so.0` and `libGLdispatch.so.0`; its launcher
 adds the bundled library directory to `LD_LIBRARY_PATH`. GPU drivers remain external.
+The host supplies glibc and its ELF loader; these and glibc companion libraries
+are excluded from deployment to avoid mixing incompatible runtime versions.
 
 GitHub Actions builds Release packages on `ubuntu-latest`, `windows-latest`, `windows-11-arm`, and
 `macos-latest` for pushes, pull requests, and manual workflow runs. Each build
