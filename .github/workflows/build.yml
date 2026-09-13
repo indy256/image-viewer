@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install prebuilt Qt
         uses: jurplel/install-qt-action@v4
@@ -27,9 +27,8 @@ jobs:
           cache: true
 
       - name: Set up MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        shell: pwsh
+        run: ./scripts/setup-msvc.ps1 -Architecture x64
 
       - name: Install assembler
         shell: pwsh
@@ -87,7 +86,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Qt
         if: runner.os != 'Windows'
@@ -106,9 +105,8 @@ jobs:
 
       - name: Set up MSVC
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.msvc-arch }}
+        shell: pwsh
+        run: ./scripts/setup-msvc.ps1 -Architecture ${{ matrix.msvc-arch }}
 
       - name: Install Windows build tools
         if: runner.os == 'Windows'
@@ -133,7 +131,7 @@ jobs:
       - name: Cache static Qt with LTO
         if: runner.os == 'Windows'
         id: qt-lto
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .qt-lto
           key: qt-lto-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.key }}-${{ hashFiles('scripts/build-qt-windows.ps1') }}
