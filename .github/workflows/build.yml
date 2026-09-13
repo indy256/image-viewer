@@ -98,7 +98,11 @@ jobs:
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y nasm perl libopengl0 libglvnd0
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm perl libopengl0 libglvnd0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0
 
       - name: Set up MSVC
         if: runner.os == 'Windows'
@@ -196,6 +200,16 @@ jobs:
           fi
           test -e AppDir/usr/lib/libOpenGL.so.0
           test -e AppDir/usr/lib/libGLdispatch.so.0
+          test -e AppDir/usr/lib/libxcb-cursor.so.0
+          test -e AppDir/usr/lib/libxkbcommon-x11.so.0
+          test -e AppDir/usr/plugins/platforms/libqxcb.so
+          while IFS= read -r -d '' plugin; do
+            dependencies=$(LD_LIBRARY_PATH="$PWD/AppDir/usr/lib" ldd "$plugin")
+            if [[ "$dependencies" == *'not found'* ]]; then
+              printf 'Unresolved dependencies in %s:\n%s\n' "$plugin" "$dependencies"
+              exit 1
+            fi
+          done < <(find AppDir/usr/plugins -type f -name '*.so' -print0)
           cp /usr/share/doc/libopengl0/copyright AppDir/usr/licenses/libglvnd.txt
           cp packaging/AppRun AppDir/AppRun
           cp packaging/image-viewer.desktop packaging/image-viewer.svg AppDir/

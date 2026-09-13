@@ -226,11 +226,16 @@ install(TARGETS iv
 if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
     set(deploy_options)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        # Qt normally excludes system libraries. Bundle the vendor-neutral GL
-        # loader and its dispatcher; GPU drivers remain supplied by the host.
+        # Qt normally excludes system libraries. Bundle the X11 client runtime
+        # and vendor-neutral GL loader; GPU drivers remain supplied by the host.
         list(APPEND deploy_options POST_INCLUDE_REGEXES
             "/libOpenGL[.]so[.]"
-            "/libGLdispatch[.]so[.]")
+            "/libGLdispatch[.]so[.]"
+            "/libxcb.*[.]so[.]"
+            "/libxkbcommon.*[.]so[.]"
+            "/libX.*[.]so[.]"
+            "/libICE[.]so[.]"
+            "/libSM[.]so[.]")
         # A bundled glibc cannot safely use the host's ELF loader. Exclude it
         # by SONAME before traversal, regardless of system-directory aliases.
         # Qt serializes these arguments unquoted into its deployment script;
