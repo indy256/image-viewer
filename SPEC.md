@@ -48,6 +48,7 @@ iv <path-to-image>
 | Mouse wheel up / down | Select the preceding / following image, one file per wheel notch. |
 | F | Toggle fullscreen and windowed mode. Holding F does not repeatedly toggle. |
 | S | Toggle temporary display sharpening for the current image. Holding S does not repeatedly toggle. Resets when another image loads; never modifies image files or persists between runs. |
+| Up / Down arrow | Increase / decrease temporary gamma in 0.1 steps, bounded to 0.1–4.0 (default 1.0). Uses output = input^(1/gamma): Up lightens midtones, Down darkens them, preserving black, white, and transparency. Holding a key repeats the adjustment. Works with sharpening and resets when another image loads; never modifies image files or persists between runs. |
 | Left-button double-click in the client area | Toggle fullscreen and windowed mode. |
 | Esc | Close the viewer. |
 | Left-button press and drag in windowed mode | Move the window through the platform's system-move operation. |

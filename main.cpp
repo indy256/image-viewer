@@ -24,6 +24,8 @@
 #include <QWheelEvent>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <utility>
 
 #ifdef Q_OS_WIN
@@ -48,7 +50,7 @@ public:
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nS: toggle temporary sharpening\nEsc: exit");
+            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nUp / Down: increase / decrease temporary gamma\nF: toggle full screen\nS: toggle temporary sharpening\nEsc: exit");
             return;
         }
 
@@ -208,9 +210,23 @@ protected:
 
     void keyPressEvent(QKeyEvent *event) override
     {
+        if (event->key() == Qt::Key_Up || event->key() == Qt::Key_Down) {
+            if (!image_.isNull()) {
+                const int gammaTenths = std::clamp(
+                    gammaTenths_ + (event->key() == Qt::Key_Up ? 1 : -1), 1, 40);
+                if (gammaTenths != gammaTenths_) {
+                    gammaTenths_ = gammaTenths;
+                    adjustedImage_ = QImage();
+                    update();
+                }
+            }
+            event->accept();
+            return;
+        }
         if (event->key() == Qt::Key_S) {
             if (!event->isAutoRepeat() && !image_.isNull()) {
                 sharpening_ = !sharpening_;
+                adjustedImage_ = QImage();
                 update();
             }
             event->accept();
@@ -262,13 +278,17 @@ protected:
             const QRect target(QPoint((width() - fitted.width()) / 2,
                                       (height() - fitted.height()) / 2), fitted);
             painter.setRenderHint(QPainter::SmoothPixmapTransform);
-            if (sharpening_) {
+            if (sharpening_ || gammaTenths_ != 10) {
                 const QSize pixels = (fitted * devicePixelRatioF()).expandedTo(QSize(1, 1));
-                if (sharpenedImage_.size() != pixels) {
-                    sharpenedImage_ = sharpen(image_.scaled(
-                        pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+                if (adjustedImage_.size() != pixels) {
+                    adjustedImage_ = image_.scaled(
+                        pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+                    if (sharpening_)
+                        adjustedImage_ = sharpen(adjustedImage_);
+                    if (gammaTenths_ != 10)
+                        adjustGamma(adjustedImage_, gammaTenths_);
                 }
-                painter.drawImage(target, sharpenedImage_.isNull() ? image_ : sharpenedImage_);
+                painter.drawImage(target, adjustedImage_.isNull() ? image_ : adjustedImage_);
             } else {
                 painter.drawImage(target, image_);
             }
@@ -281,6 +301,24 @@ protected:
 
 private:
     using FileStamp = QPair<qint64, QDateTime>;
+
+    static void adjustGamma(QImage &image, int gammaTenths)
+    {
+        // Apply output = input^(1/gamma) to straight color channels, leaving
+        // alpha unchanged. A lookup table avoids a power operation per channel.
+        image = image.convertToFormat(QImage::Format_ARGB32);
+        std::array<int, 256> levels;
+        for (int value = 0; value < 256; ++value)
+            levels[value] = qRound(255.0 * std::pow(value / 255.0, 10.0 / gammaTenths));
+        for (int y = 0; y < image.height(); ++y) {
+            auto *row = reinterpret_cast<QRgb *>(image.scanLine(y));
+            for (int x = 0; x < image.width(); ++x) {
+                const QRgb pixel = row[x];
+                row[x] = qRgba(levels[qRed(pixel)], levels[qGreen(pixel)],
+                               levels[qBlue(pixel)], qAlpha(pixel));
+            }
+        }
+    }
 
     static QImage sharpen(const QImage &image)
     {
@@ -521,7 +559,8 @@ private:
         const QImage nextImage = it == cache_.cend() ? QImage() : it->image;
         if (image_.cacheKey() != nextImage.cacheKey()) {
             sharpening_ = false;
-            sharpenedImage_ = QImage();
+            gammaTenths_ = 10;
+            adjustedImage_ = QImage();
         }
         image_ = nextImage;
         if (it == cache_.cend())
@@ -597,8 +636,9 @@ private:
     QStringList files_;
     qsizetype index_ = -1;
     QImage image_;
-    QImage sharpenedImage_;
+    QImage adjustedImage_;
     bool sharpening_ = false;
+    int gammaTenths_ = 10;
     QString message_;
     QFileSystemWatcher watcher_;
     QTimer refreshTimer_;
