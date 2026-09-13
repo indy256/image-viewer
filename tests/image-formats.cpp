@@ -52,6 +52,27 @@ static bool waitFor(const std::function<bool()> &condition)
     return false;
 }
 
+static bool hasTransparentPixel(const QImage &image)
+{
+    for (int y = 0; y < image.height(); ++y)
+        for (int x = 0; x < image.width(); ++x)
+            if (image.pixelColor(x, y).alpha() < 255)
+                return true;
+    return false;
+}
+
+static void checkConcurrentDecoding(const QByteArray &bytes, const char *format,
+                                    const QImage &expected)
+{
+    std::vector<std::future<QImage>> decodes;
+    for (int i = 0; i < 4; ++i)
+        decodes.push_back(std::async(std::launch::async, [bytes, format] {
+            return QImage::fromData(bytes, format);
+        }));
+    for (auto &decode : decodes)
+        require(decode.get() == expected, qPrintable(QString("Concurrent %1 decoding failed").arg(format)));
+}
+
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
@@ -74,18 +95,8 @@ int main(int argc, char **argv)
     require(QImage::fromData(avif.left(64), "avif").isNull(), "Truncated AVIF should fail");
     const QImage alphaAvif = QImage::fromData(heicFixture("simple_osm_tile_alpha.avif"), "avif");
     require(!alphaAvif.isNull(), "AVIF alpha fixture failed to decode");
-    bool avifTransparentPixel = false;
-    for (int y = 0; y < alphaAvif.height(); ++y)
-        for (int x = 0; x < alphaAvif.width(); ++x)
-            avifTransparentPixel |= alphaAvif.pixelColor(x,y).alpha() < 255;
-    require(avifTransparentPixel, "AVIF transparency was lost");
-    std::vector<std::future<QImage>> avifDecodes;
-    for (int i = 0; i < 4; ++i)
-        avifDecodes.push_back(std::async(std::launch::async, [avif] {
-            return QImage::fromData(avif, "avif");
-        }));
-    for (auto &decode : avifDecodes)
-        require(decode.get() == decodedAvif, "Concurrent AVIF decoding failed");
+    require(hasTransparentPixel(alphaAvif), "AVIF transparency was lost");
+    checkConcurrentDecoding(avif, "avif", decodedAvif);
     const QImage decodedHeic = QImage::fromData(heic, "heic");
     require(decodedHeic.size() == QSize(451, 461), "HEIC decoding failed");
     require(QImage::fromData(heic, "heif").size() == decodedHeic.size(), "HEIF alias failed");
@@ -94,18 +105,8 @@ int main(int argc, char **argv)
             "HEIC crop was not applied");
     const QImage alphaHeic = QImage::fromData(heicFixture("with-alpha-512x512.heic"), "heic");
     require(alphaHeic.size() == QSize(512,512), "HEIC alpha fixture failed to decode");
-    bool transparentPixel = false;
-    for (int y = 0; y < alphaHeic.height(); ++y)
-        for (int x = 0; x < alphaHeic.width(); ++x)
-            transparentPixel |= alphaHeic.pixelColor(x,y).alpha() < 255;
-    require(transparentPixel, "HEIC transparency was lost");
-    std::vector<std::future<QImage>> heicDecodes;
-    for (int i = 0; i < 4; ++i)
-        heicDecodes.push_back(std::async(std::launch::async, [heic] {
-            return QImage::fromData(heic, "heic");
-        }));
-    for (auto &decode : heicDecodes)
-        require(decode.get() == decodedHeic, "Concurrent HEIC decoding failed");
+    require(hasTransparentPixel(alphaHeic), "HEIC transparency was lost");
+    checkConcurrentDecoding(heic, "heic", decodedHeic);
     QImageReader reference(QDir(app.arguments().at(1)).filePath("red.jp2"), "jp2");
     require(reference.read().size() == QSize(64, 48), "Reference JP2 fixture failed to decode");
     require(QImage::fromData(QByteArray("invalid JP2"), "jp2").isNull(),

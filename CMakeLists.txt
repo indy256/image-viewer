@@ -104,7 +104,6 @@ qt_add_plugin(iv_webp STATIC CLASS_NAME QWebpPlugin
     ${webp_plugin_dir}/qwebphandler.cpp
     ${webp_plugin_dir}/qwebphandler_p.h
 )
-target_include_directories(iv_webp PRIVATE ${libwebp_SOURCE_DIR}/src)
 target_link_libraries(iv_webp PRIVATE Qt6::Gui webp webpdemux libwebpmux)
 
 FetchContent_Declare(libde265
@@ -189,10 +188,20 @@ qt_add_executable(iv
     MACOSX_BUNDLE
     main.cpp
 )
-target_link_libraries(iv PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic)
-if(WIN32)
-    target_link_libraries(iv PRIVATE dwmapi)
-endif()
+get_target_property(qt_library_type Qt6::Core TYPE)
+function(configure_viewer_target target)
+    target_link_libraries(${target} PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic)
+    if(WIN32)
+        target_link_libraries(${target} PRIVATE dwmapi)
+    endif()
+    if(qt_library_type STREQUAL "STATIC_LIBRARY")
+        qt_import_plugins(${target} INCLUDE_BY_TYPE imageformats Qt6::QJpegPlugin)
+        if(MINGW)
+            target_link_options(${target} PRIVATE -static)
+        endif()
+    endif()
+endfunction()
+configure_viewer_target(iv)
 
 option(IMAGE_VIEWER_LTO "Enable link-time optimization for release builds" ${WIN32})
 if(IMAGE_VIEWER_LTO)
@@ -211,30 +220,11 @@ elseif(MSVC)
     target_link_options(iv PRIVATE "$<$<CONFIG:Release,MinSizeRel>:/OPT:REF;/OPT:ICF>")
 endif()
 
-get_target_property(qt_library_type Qt6::Core TYPE)
-if(qt_library_type STREQUAL "STATIC_LIBRARY")
-    qt_import_plugins(iv
-        INCLUDE_BY_TYPE imageformats Qt6::QJpegPlugin
-    )
-    if(MINGW)
-        target_link_options(iv PRIVATE -static)
-    endif()
-endif()
-
 option(IMAGE_VIEWER_BUILD_TESTS "Build image-format integration tests" OFF)
 if(IMAGE_VIEWER_BUILD_TESTS)
     enable_testing()
     qt_add_executable(iv_image_tests tests/image-formats.cpp)
-    target_link_libraries(iv_image_tests PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic)
-    if(WIN32)
-        target_link_libraries(iv_image_tests PRIVATE dwmapi)
-    endif()
-    if(qt_library_type STREQUAL "STATIC_LIBRARY")
-        qt_import_plugins(iv_image_tests INCLUDE_BY_TYPE imageformats Qt6::QJpegPlugin)
-        if(MINGW)
-            target_link_options(iv_image_tests PRIVATE -static)
-        endif()
-    endif()
+    configure_viewer_target(iv_image_tests)
     add_test(NAME image-formats COMMAND iv_image_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/data ${libheif_SOURCE_DIR}/tests/data)
     if(NOT WIN32)

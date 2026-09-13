@@ -11,7 +11,7 @@ bool hasHeifSignature(QIODevice *device)
 {
     if (!device || !device->isReadable())
         return false;
-    const QByteArray header = device->peek(128);
+    const QByteArray header = device->peek(12);
     if (header.size() < 12 || header.mid(4, 4) != "ftyp")
         return false;
     // libheif's quick check omits generic HEIF and the compact 'mif3' AVIF brand.
@@ -38,8 +38,8 @@ public:
         if (library.error.code != heif_error_Ok || !output || !canRead())
             return false;
         // Bound both compressed input and decoded allocations before decoding.
-        const quint64 budget = quint64(QImageReader::allocationLimit() > 0
-            ? QImageReader::allocationLimit() : 1024) * 1024 * 1024;
+        const int allocationLimit = QImageReader::allocationLimit();
+        const quint64 budget = quint64(allocationLimit > 0 ? allocationLimit : 1024) * 1024 * 1024;
         const QByteArray bytes = device()->read(qint64(budget + 1));
         if (bytes.isEmpty() || quint64(bytes.size()) > budget)
             return false;

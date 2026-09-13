@@ -38,7 +38,7 @@ public:
         }
 
         const QFileInfo initial(arguments.at(1));
-        if (!initial.isFile() || !isSupportedImage(initial)) {
+        if (!initial.isFile() || imageFormat(initial).isEmpty()) {
             message_ = tr("Not a supported image file (JPEG, JP2, WebP, HEIC/HEIF or AVIF): %1").arg(arguments.at(1));
             return;
         }
@@ -51,7 +51,6 @@ public:
         connect(&watcher_, &QFileSystemWatcher::fileChanged, this,
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
-        watcher_.addPath(directory_);
         refreshDirectory(initial.absoluteFilePath());
     }
 
@@ -199,7 +198,6 @@ protected:
     }
 
 private:
-
     using FileStamp = QPair<qint64, QDateTime>;
 
     void navigate(qsizetype offset)
@@ -221,9 +219,10 @@ private:
         const auto entries = QDir(directory_).entryInfoList(
             QDir::Files | QDir::Hidden, QDir::NoSort);
         for (const auto &entry : entries) {
-            if (isSupportedImage(entry)) {
-                files.append(entry.absoluteFilePath());
-                stamps.insert(entry.absoluteFilePath(), {entry.size(), entry.lastModified()});
+            if (!imageFormat(entry).isEmpty()) {
+                const QString path = entry.absoluteFilePath();
+                files.append(path);
+                stamps.insert(path, {entry.size(), entry.lastModified()});
             }
         }
         std::sort(files.begin(), files.end(), [](const QString &a, const QString &b) {
@@ -368,16 +367,15 @@ private:
         fitPending_ = false;
     }
 
-    static bool isSupportedImage(const QFileInfo &file)
+    static QByteArray imageFormat(const QFileInfo &file)
     {
-        const auto suffix = file.suffix();
-        return suffix.compare(QStringLiteral("jpg"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("jpeg"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("jp2"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("webp"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("heic"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("heif"), Qt::CaseInsensitive) == 0
-            || suffix.compare(QStringLiteral("avif"), Qt::CaseInsensitive) == 0;
+        const QByteArray suffix = file.suffix().toLower().toLatin1();
+        if (suffix == "jpg")
+            return "jpeg";
+        if (suffix == "jpeg" || suffix == "jp2" || suffix == "webp"
+            || suffix == "heic" || suffix == "heif" || suffix == "avif")
+            return suffix;
+        return {};
     }
 
     void loadImage()
@@ -405,16 +403,17 @@ private:
 
     void showCachedImage()
     {
-        const auto it = cache_.constFind(files_.at(index_));
+        const QString &path = files_.at(index_);
+        const QFileInfo file(path);
+        const auto it = cache_.constFind(path);
         image_ = it == cache_.cend() ? QImage() : it->image;
         if (it == cache_.cend())
-            message_ = tr("Loading %1...").arg(QFileInfo(files_.at(index_)).fileName());
+            message_ = tr("Loading %1...").arg(file.fileName());
         else if (image_.isNull())
             message_ = tr("Could not open %1\n%2\n\nUse Left / Right to continue.")
-                           .arg(QFileInfo(files_.at(index_)).fileName(), it->error);
+                           .arg(file.fileName(), it->error);
         else
             message_.clear();
-        const QFileInfo file(files_.at(index_));
         const QString resolution = image_.isNull() ? QString()
             : tr(" - %1 \u00d7 %2").arg(image_.width()).arg(image_.height());
         setWindowTitle(tr("%1 (%2/%3)%4 - Image Viewer - Left / Right to navigate")
@@ -429,7 +428,7 @@ private:
         // Keep only two decodes in flight. Recompute priorities after each result
         // so rapid navigation never leaves a long queue of obsolete work.
         auto schedule = [this](qsizetype index) {
-            if (pending_.size() >= 2 || !inCacheRange(index))
+            if (pending_.size() >= maxPendingDecodes_ || !inCacheRange(index))
                 return;
             const QString path = files_.at(index);
             if (cache_.contains(path) || pending_.contains(path))
@@ -437,10 +436,7 @@ private:
             pending_.insert(path);
             const FileStamp stamp = stamps_.value(path);
             workers_.start([this, path, stamp] {
-                QByteArray format = QFileInfo(path).suffix().toLower().toLatin1();
-                if (format == "jpg")
-                    format = "jpeg";
-                QImageReader reader(path, format);
+                QImageReader reader(path, imageFormat(QFileInfo(path)));
                 reader.setAutoTransform(true);
                 CachedImage result{reader.read(), reader.errorString()};
                 QMetaObject::invokeMethod(this, [this, path, stamp, result = std::move(result)] {
@@ -456,13 +452,15 @@ private:
             });
         };
         schedule(index_);
-        for (qsizetype distance = 1; distance <= preloadRadius_ && pending_.size() < 2; ++distance) {
+        for (qsizetype distance = 1;
+             distance <= preloadRadius_ && pending_.size() < maxPendingDecodes_; ++distance) {
             schedule(index_ + distance);
             schedule(index_ - distance);
         }
     }
 
     static constexpr qsizetype preloadRadius_ = 100;
+    static constexpr qsizetype maxPendingDecodes_ = 2;
 
     bool dragPending_ = false;
     qint64 wheelRemainder_ = 0;
