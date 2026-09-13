@@ -76,7 +76,8 @@ jobs:
 
       - name: Build
         if: runner.os != 'Windows'
-        run: cmake --build build --config Release --parallel
+        # Bare --parallel gives Unix Makefiles unlimited jobs and can exhaust runner memory.
+        run: cmake --build build --config Release --parallel 2
 
       - name: Test image formats
         if: runner.os != 'Windows'
