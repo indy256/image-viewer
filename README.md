@@ -52,11 +52,6 @@ Every CI build uploads standalone downloads in the workflow run's Artifacts sect
   Applications. Run `/Applications/iv.app/Contents/MacOS/iv /path/to/photo.jpg`
   or open an image with **iv** in Finder.
 
-A separate **Windows x64 fast build** uses cached, prebuilt Qt 6.8.3 with LTO
-disabled. Download the `windows-x64-fast` artifact, extract it, and run `bin/iv.exe`.
-Keep the accompanying Qt DLLs and plugins with it. This job runs independently
-of the standalone builds and provides a workflow artifact, not a release asset.
-
 Linux AppImages target the Ubuntu version used by `ubuntu-latest` and newer compatible systems.
 They still depend on the host's standard system libraries and graphics drivers.
 macOS packages are not Developer ID signed or notarized.
