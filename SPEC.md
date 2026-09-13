@@ -47,6 +47,7 @@ iv <path-to-image>
 | Right arrow | Select the following image in the sorted list. |
 | Mouse wheel up / down | Select the preceding / following image, one file per wheel notch. |
 | F | Toggle fullscreen and windowed mode. Holding F does not repeatedly toggle. |
+| S | Toggle temporary display sharpening for the current image. Holding S does not repeatedly toggle. Resets when another image loads; never modifies image files or persists between runs. |
 | Left-button double-click in the client area | Toggle fullscreen and windowed mode. |
 | Esc | Close the viewer. |
 | Left-button press and drag in windowed mode | Move the window through the platform's system-move operation. |

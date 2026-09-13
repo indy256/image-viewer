@@ -14,6 +14,8 @@ iv photo.jpg
 Browse PNG, JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetically with the Left and Right arrow keys
 or the mouse wheel (up for previous, down for next).
 Photos automatically fit the window, and newly added files appear without restarting.
+Press S to toggle sharpening for the current image. Sharpening resets when another
+image loads and is never saved to the image file or remembered between runs.
 Press F or double-click to switch between fullscreen and windowed mode, drag the
 image to move the window, and press Esc to exit. Your window size and position are
 remembered when switching modes. WebP supports transparency; animated WebP shows its first frame.

@@ -48,7 +48,7 @@ public:
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
+            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nS: toggle temporary sharpening\nEsc: exit");
             return;
         }
 
@@ -208,6 +208,14 @@ protected:
 
     void keyPressEvent(QKeyEvent *event) override
     {
+        if (event->key() == Qt::Key_S) {
+            if (!event->isAutoRepeat() && !image_.isNull()) {
+                sharpening_ = !sharpening_;
+                update();
+            }
+            event->accept();
+            return;
+        }
         if (event->key() == Qt::Key_F) {
             if (!event->isAutoRepeat())
                 toggleFullScreen();
@@ -254,7 +262,16 @@ protected:
             const QRect target(QPoint((width() - fitted.width()) / 2,
                                       (height() - fitted.height()) / 2), fitted);
             painter.setRenderHint(QPainter::SmoothPixmapTransform);
-            painter.drawImage(target, image_);
+            if (sharpening_) {
+                const QSize pixels = (fitted * devicePixelRatioF()).expandedTo(QSize(1, 1));
+                if (sharpenedImage_.size() != pixels) {
+                    sharpenedImage_ = sharpen(image_.scaled(
+                        pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+                }
+                painter.drawImage(target, sharpenedImage_.isNull() ? image_ : sharpenedImage_);
+            } else {
+                painter.drawImage(target, image_);
+            }
         } else {
             painter.setPen(Qt::white);
             painter.drawText(rect().adjusted(24, 24, -24, -24),
@@ -264,6 +281,35 @@ protected:
 
 private:
     using FileStamp = QPair<qint64, QDateTime>;
+
+    static QImage sharpen(const QImage &image)
+    {
+        const QImage source = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        QImage result = source.copy();
+        if (source.isNull() || result.isNull())
+            return {};
+        // A mild four-neighbor unsharp mask, with replicated image edges.
+        // Preserve alpha and keep premultiplied color channels within its range.
+        for (int y = 0; y < source.height(); ++y) {
+            const auto *above = reinterpret_cast<const QRgb *>(source.constScanLine(std::max(0, y - 1)));
+            const auto *row = reinterpret_cast<const QRgb *>(source.constScanLine(y));
+            const auto *below = reinterpret_cast<const QRgb *>(source.constScanLine(std::min(source.height() - 1, y + 1)));
+            auto *output = reinterpret_cast<QRgb *>(result.scanLine(y));
+            for (int x = 0; x < source.width(); ++x) {
+                const QRgb center = row[x];
+                const QRgb left = row[std::max(0, x - 1)];
+                const QRgb right = row[std::min(source.width() - 1, x + 1)];
+                const int alpha = qAlpha(center);
+                const auto channel = [&](int shift) {
+                    const auto value = [shift](QRgb pixel) { return int((pixel >> shift) & 255); };
+                    return std::clamp((6 * value(center) - value(left) - value(right)
+                                       - value(above[x]) - value(below[x]) + 1) / 2, 0, alpha);
+                };
+                output[x] = qRgba(channel(16), channel(8), channel(0), alpha);
+            }
+        }
+        return result;
+    }
 
     void navigate(qsizetype offset)
     {
@@ -472,7 +518,12 @@ private:
         const QString &path = files_.at(index_);
         const QFileInfo file(path);
         const auto it = cache_.constFind(path);
-        image_ = it == cache_.cend() ? QImage() : it->image;
+        const QImage nextImage = it == cache_.cend() ? QImage() : it->image;
+        if (image_.cacheKey() != nextImage.cacheKey()) {
+            sharpening_ = false;
+            sharpenedImage_ = QImage();
+        }
+        image_ = nextImage;
         if (it == cache_.cend())
             message_ = tr("Loading %1...").arg(file.fileName());
         else if (image_.isNull())
@@ -546,6 +597,8 @@ private:
     QStringList files_;
     qsizetype index_ = -1;
     QImage image_;
+    QImage sharpenedImage_;
+    bool sharpening_ = false;
     QString message_;
     QFileSystemWatcher watcher_;
     QTimer refreshTimer_;
