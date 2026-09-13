@@ -8,7 +8,7 @@ Third-party dependencies retain their own licenses; see [third-party notices](TH
 A single-window viewer for JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), HEIC/HEIF (`.heic`, `.heif`), and AVIF (`.avif`) images that opens in full-screen mode. Launch with an image filename:
 
 ```powershell
-& C:/projects/image-viewer-build/iv.exe "C:/Pictures/photo.jpg"
+iv photo.jpg
 ```
 
 Browse JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetically with the Left and Right arrow keys
