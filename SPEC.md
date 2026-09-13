@@ -159,17 +159,19 @@ static Qt and compiler-runtime linking for the standalone executable.
 | Distribution platform | Deliverable |
 | --- | --- |
 | Windows x64 | `iv.exe`, with Qt and compiler runtime linked statically; Windows system libraries remain external. |
+| Windows ARM64 | `iv-Windows-ARM64.exe`, a native ARM64 executable with Qt and compiler runtime linked statically; Windows system libraries remain external. |
 | Linux x64 | `iv.AppImage`, bundling Qt; requires executable permission and compatible host system libraries and graphics drivers. |
 | macOS ARM64 | `iv-macOS-ARM64.zip`, containing `iv.app` with its Qt frameworks and plugins; a single archive with no nested ZIP. |
 
 Linux packages target the Ubuntu version used by the build runner and compatible
 newer systems. The macOS application is not Developer ID signed or notarized.
 
-GitHub Actions builds Release packages on `ubuntu-latest`, `windows-latest`, and
+GitHub Actions builds Release packages on `ubuntu-latest`, `windows-latest`, `windows-11-arm`, and
 `macos-latest` for pushes, pull requests, and manual workflow runs. Each build
-uploads its platform artifact. Windows CI checks runtime DLL dependencies.
+uploads its platform artifact. Windows CI checks executable architecture and runtime DLL dependencies.
+The Windows ARM64 job uses native ARM64 MSVC tools and a separate Qt cache.
 
-Pushing a version tag matching `v*` publishes the three deliverables to a GitHub
+Pushing a version tag matching `v*` publishes the four deliverables to a GitHub
 Release after all platform builds succeed. An existing release for the tag is
 updated with the generated binaries.
 

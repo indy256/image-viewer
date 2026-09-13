@@ -12,20 +12,26 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.os == 'windows-latest' && 120 || 30 }}
+    timeout-minutes: ${{ startsWith(matrix.os, 'windows-') && 120 || 30 }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, windows-11-arm, macos-latest]
         include:
           - os: ubuntu-latest
             qt-version: '6.8.3'
             package-format: TGZ
             artifact-path: dist/iv.AppImage
           - os: windows-latest
+            msvc-arch: x64
             qt-version: '6.11.2'
             package-format: ZIP
             artifact-path: dist/iv.exe
+          - os: windows-11-arm
+            msvc-arch: arm64
+            qt-version: '6.11.2'
+            package-format: ZIP
+            artifact-path: dist/iv-Windows-ARM64.exe
           - os: macos-latest
             # Qt 6.8.3 links AGL, which newer macOS SDKs no longer provide.
             qt-version: '6.11.2'
@@ -51,15 +57,17 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: x64
+          arch: ${{ matrix.msvc-arch }}
 
       - name: Install Windows build tools
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install nasm --yes --no-progress
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "$env:ProgramFiles\NASM" >> $env:GITHUB_PATH
+          if ($env:RUNNER_ARCH -eq 'X64') {
+            choco install nasm --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            "$env:ProgramFiles\NASM" >> $env:GITHUB_PATH
+          }
           Get-Command cmake, ninja, perl, cl
 
       - name: Identify Windows toolchain
@@ -99,14 +107,22 @@ jobs:
       - name: Build standalone Windows executable
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          ARTIFACT_PATH: ${{ matrix.artifact-path }}
         run: |
           & ./.qt-lto/bin/qt-cmake.bat -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build --parallel 2
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item build/iv.exe dist/iv.exe
-          $dependencies = & dumpbin /DEPENDENTS dist/iv.exe
+          Copy-Item build/iv.exe $env:ARTIFACT_PATH
+          $headers = & dumpbin /HEADERS $env:ARTIFACT_PATH
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $machine = if ($env:RUNNER_ARCH -eq 'ARM64') { 'AA64' } else { '8664' }
+          if (-not ($headers -match "(?i)\b$machine machine")) {
+            throw "Executable does not match runner architecture: $env:RUNNER_ARCH"
+          }
+          $dependencies = & dumpbin /DEPENDENTS $env:ARTIFACT_PATH
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $dependencies
           if ($dependencies -match '(?i)(Qt6|libgcc|libstdc\+\+|libwinpthread|VCRUNTIME\d|MSVCP\d|CONCRT\d|ucrtbased)') {

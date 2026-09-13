@@ -37,6 +37,8 @@ Every CI build uploads standalone downloads in the workflow run's Artifacts sect
 
 - Windows x64: `iv.exe`, with Qt and the compiler runtime
   linked statically. No accompanying Qt DLLs or installation are needed.
+- Windows ARM64: `iv-Windows-ARM64.exe`, a native ARM64 executable with Qt
+  and the compiler runtime linked statically.
 - Linux x64: `iv.AppImage`. Make it executable with `chmod +x`
   and run it with an image filename. Qt is bundled inside the AppImage.
 - macOS ARM64: a ZIP containing `iv.app`, with its Qt frameworks and
@@ -81,7 +83,10 @@ cmake --build ../image-viewer-build/iv-msvc-lto --parallel 2
 The MSVC variant uses unmodified Qt sources with LTO and a static compiler runtime
 (`/MT`). Windows CI uses MSVC; the script also retains MinGW support.
 
-Pushing a version tag such as `v1.0.0` builds all three packages and publishes
+Windows ARM64 builds run on `windows-11-arm` with the ARM64 MSVC toolchain.
+Each Windows architecture has its own cached Qt installation.
+
+Pushing a version tag such as `v1.0.0` builds all four packages and publishes
 a GitHub Release with the standalone downloads attached, after every build succeeds:
 
 ```sh
