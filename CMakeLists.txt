@@ -181,8 +181,21 @@ qt_add_executable(iv
     MACOSX_BUNDLE
     main.cpp
 )
-if(APPLE)
+qt_add_resources(iv "iv_icons"
+    PREFIX "/iv"
+    BASE "packaging"
+    FILES packaging/image-viewer.png
+)
+if(WIN32)
+    target_sources(iv PRIVATE packaging/iv.rc)
+    target_include_directories(iv PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
+elseif(APPLE)
+    target_sources(iv PRIVATE packaging/iv.icns)
+    set_source_files_properties(packaging/iv.icns PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+    )
     set_target_properties(iv PROPERTIES
+        MACOSX_BUNDLE_ICON_FILE "iv.icns"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/Info.plist.in"
     )
 endif()
@@ -223,6 +236,10 @@ install(TARGETS iv
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    install(FILES packaging/image-viewer.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+    install(FILES packaging/image-viewer.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)
+endif()
 if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
     set(deploy_options)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")

@@ -8,6 +8,7 @@
 #include <QFileOpenEvent>
 #include <QFileSystemWatcher>
 #include <QImageReader>
+#include <QIcon>
 #include <QKeyEvent>
 #include <QMap>
 #include <QMouseEvent>
@@ -551,6 +552,8 @@ private:
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(QStringLiteral(":/iv/image-viewer.png")));
+    app.setDesktopFileName(QStringLiteral("image-viewer"));
     // JPEG 2000 needs substantial temporary memory beyond the decoded pixels.
     // Keep a bounded budget; QT_IMAGEIO_MAXALLOC can override it at runtime.
     QImageReader::setAllocationLimit(1024);

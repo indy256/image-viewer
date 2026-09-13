@@ -212,7 +212,7 @@ jobs:
           done < <(find AppDir/usr/plugins -type f -name '*.so' -print0)
           cp /usr/share/doc/libopengl0/copyright AppDir/usr/licenses/libglvnd.txt
           cp packaging/AppRun AppDir/AppRun
-          cp packaging/image-viewer.desktop packaging/image-viewer.svg AppDir/
+          cp packaging/image-viewer.desktop packaging/image-viewer.png AppDir/
           chmod +x AppDir/AppRun
           curl -fL --retry 3 -o appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage

@@ -8,6 +8,8 @@
     <string>com.github.indy256.image-viewer</string>
     <key>CFBundleName</key>
     <string>iv</string>
+    <key>CFBundleIconFile</key>
+    <string>${MACOSX_BUNDLE_ICON_FILE}</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundlePackageType</key>
