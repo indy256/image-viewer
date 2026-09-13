@@ -96,9 +96,9 @@ jobs:
           version: ${{ matrix.qt-version }}
           cache: true
 
-      - name: Install AV1 build tools
+      - name: Install Linux build dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y nasm perl
+        run: sudo apt-get update && sudo apt-get install -y nasm perl libopengl0 libglvnd0
 
       - name: Set up MSVC
         if: runner.os == 'Windows'
@@ -190,6 +190,9 @@ jobs:
           ARCH: x86_64
         run: |
           cmake --install build --prefix "$PWD/AppDir/usr"
+          test -e AppDir/usr/lib/libOpenGL.so.0
+          test -e AppDir/usr/lib/libGLdispatch.so.0
+          cp /usr/share/doc/libopengl0/copyright AppDir/usr/licenses/libglvnd.txt
           cp packaging/AppRun AppDir/AppRun
           cp packaging/image-viewer.desktop packaging/image-viewer.svg AppDir/
           chmod +x AppDir/AppRun

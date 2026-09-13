@@ -224,10 +224,18 @@ install(TARGETS iv
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
+    set(deploy_options)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        # Qt normally excludes system libraries. Bundle the vendor-neutral GL
+        # loader and its dispatcher; GPU drivers remain supplied by the host.
+        list(APPEND deploy_options POST_INCLUDE_REGEXES
+            [[/lib(OpenGL|GLdispatch)\.so(\..*)?$]])
+    endif()
     qt_generate_deploy_app_script(
         TARGET iv
         OUTPUT_SCRIPT deploy_script
         NO_TRANSLATIONS
+        ${deploy_options}
     )
     install(SCRIPT ${deploy_script})
 endif()
