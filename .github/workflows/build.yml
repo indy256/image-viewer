@@ -218,6 +218,7 @@ jobs:
           chmod +x appimagetool.AppImage
           mkdir -p dist
           ./appimagetool.AppImage AppDir dist/iv-Linux-X64.AppImage
+          chmod 755 dist/iv-Linux-X64.AppImage
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
