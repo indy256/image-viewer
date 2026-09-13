@@ -1,15 +1,16 @@
 // Copyright (C) 2026 indy256
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include <QApplication>
 #include "jpegloader.h"
+
+#include <QApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
 #include <QFileOpenEvent>
 #include <QFileSystemWatcher>
-#include <QImageReader>
 #include <QIcon>
+#include <QImageReader>
 #include <QKeyEvent>
 #include <QMap>
 #include <QMouseEvent>
@@ -66,10 +67,9 @@ public:
 
         refreshTimer_.stop();
         if (directory_ != initial.absolutePath()) {
-            if (!watcher_.directories().isEmpty())
-                watcher_.removePaths(watcher_.directories());
-            if (!watcher_.files().isEmpty())
-                watcher_.removePaths(watcher_.files());
+            const QStringList watchedPaths = watcher_.directories() + watcher_.files();
+            if (!watchedPaths.isEmpty())
+                watcher_.removePaths(watchedPaths);
             cache_.clear();
             image_ = QImage();
             files_.clear();
@@ -118,26 +118,20 @@ public:
                 move(pos() + screenArea.center() - frame.center());
                 firstWindowedSwitch_ = false;
             }
+#if defined(Q_OS_MACOS) || defined(Q_OS_LINUX)
+            // Restore focus after Qt processes the windowed-mode changes.
+            QTimer::singleShot(0, this, [this] {
+                if (!isVisible() || isFullScreen())
+                    return;
 #ifdef Q_OS_MACOS
-            // Restore Cocoa's key window and first responder after Qt processes
-            // the windowed-mode changes, without stealing focus from another app.
-            QTimer::singleShot(0, this, [this] {
-                if (isVisible() && !isFullScreen()
-                    && QGuiApplication::applicationState() == Qt::ApplicationActive) {
-                    activateWindow();
-                    setFocus(Qt::OtherFocusReason);
-                }
-            });
+                // Cocoa must not steal focus from another application.
+                if (QGuiApplication::applicationState() != Qt::ApplicationActive)
+                    return;
 #elif defined(Q_OS_LINUX)
-            // Request activation after Qt has processed the restored window.
-            // Changing decoration flags here can make X11 reframe the window
-            // and undo focus, so those flags are only changed on Windows.
-            QTimer::singleShot(0, this, [this] {
-                if (isVisible() && !isFullScreen()) {
-                    raise();
-                    activateWindow();
-                    setFocus(Qt::OtherFocusReason);
-                }
+                raise();
+#endif
+                activateWindow();
+                setFocus(Qt::OtherFocusReason);
             });
 #endif
         } else {
@@ -499,10 +493,10 @@ private:
     {
         // Bound concurrent decodes. Recompute priorities after each result
         // so rapid navigation never leaves a long queue of obsolete work.
-        auto schedule = [this](qsizetype index) {
-            if (pending_.size() >= maxPendingDecodes_ || !inCacheRange(index))
+        auto schedule = [this](qsizetype candidateIndex) {
+            if (pending_.size() >= maxPendingDecodes_ || !inCacheRange(candidateIndex))
                 return;
-            const QString path = files_.at(index);
+            const QString path = files_.at(candidateIndex);
             if (cache_.contains(path) || pending_.contains(path))
                 return;
             pending_.insert(path);
