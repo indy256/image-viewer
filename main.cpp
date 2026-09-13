@@ -64,10 +64,13 @@ public:
         windowedState_ = windowState();
         windowedGeometry_ = isMaximized() ? normalGeometry() : geometry();
         fitPending_ = false;
-        // Set the platform flag before Qt calculates fullscreen geometry.
+#ifndef Q_OS_MACOS
+        // macOS manages its own frame during the native fullscreen transition.
+        // Set the platform flag before Qt calculates fullscreen geometry elsewhere.
         // QWindow flags preserve the native window and mouse click tracking.
         winId();
         windowHandle()->setFlag(Qt::FramelessWindowHint, true);
+#endif
         showFullScreen();
         refreshNativeFrame();
     }
@@ -78,7 +81,9 @@ public:
         if (isFullScreen()) {
             const QRect screenArea = screen()->availableGeometry();
             showNormal();
+#ifndef Q_OS_MACOS
             windowHandle()->setFlag(Qt::FramelessWindowHint, false);
+#endif
             refreshNativeFrame();
             restoreWindowedGeometry();
             if (!firstWindowedSwitch_ && windowedState_.testFlag(Qt::WindowMaximized))
@@ -90,6 +95,17 @@ public:
                 move(pos() + screenArea.center() - frame.center());
                 firstWindowedSwitch_ = false;
             }
+#ifdef Q_OS_MACOS
+            // Restore Cocoa's key window and first responder after Qt processes
+            // the windowed-mode changes, without stealing focus from another app.
+            QTimer::singleShot(0, this, [this] {
+                if (isVisible() && !isFullScreen()
+                    && QGuiApplication::applicationState() == Qt::ApplicationActive) {
+                    activateWindow();
+                    setFocus(Qt::OtherFocusReason);
+                }
+            });
+#endif
         } else {
             enterFullScreen();
         }
