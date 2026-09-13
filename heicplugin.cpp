@@ -12,8 +12,13 @@ bool hasHeifSignature(QIODevice *device)
     if (!device || !device->isReadable())
         return false;
     const QByteArray header = device->peek(128);
-    return heif_check_filetype(reinterpret_cast<const uint8_t *>(header.constData()),
-                               int(header.size())) == heif_filetype_yes_supported;
+    if (header.size() < 12 || header.mid(4, 4) != "ftyp")
+        return false;
+    // libheif's quick check omits generic HEIF and the compact 'mif3' AVIF brand.
+    const QByteArray brand = header.mid(8, 4);
+    return brand == "heic" || brand == "heix" || brand == "hevc" || brand == "hevx"
+        || brand == "avif" || brand == "avis" || brand == "mif1" || brand == "mif2"
+        || brand == "mif3" || brand == "msf1";
 }
 
 struct HeifLibrary
@@ -111,7 +116,8 @@ class HeicPlugin final : public QImageIOPlugin
 public:
     Capabilities capabilities(QIODevice *device, const QByteArray &format) const override
     {
-        if (format == "heic" || format == "heif" || (format.isEmpty() && hasHeifSignature(device)))
+        if (format == "heic" || format == "heif" || format == "avif"
+            || (format.isEmpty() && hasHeifSignature(device)))
             return CanRead;
         return {};
     }

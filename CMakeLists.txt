@@ -117,15 +117,34 @@ FetchContent_Declare(libheif
     URL_HASH SHA256=ce7739356637b7371dcc0ae876027f6f692de9c9ace8cd0e9ed8d79a01ea61fe
     SOURCE_SUBDIR unused
 )
-FetchContent_MakeAvailable(libde265 libheif)
+FetchContent_Declare(libaom
+    URL https://storage.googleapis.com/aom-releases/libaom-3.13.3.tar.gz
+    URL_HASH SHA256=446a4ae9741cb8f3eeb98c949d25f91b48cb2b8569cae975c4b737392e9024fc
+    SOURCE_SUBDIR unused
+)
+FetchContent_MakeAvailable(libde265 libheif libaom)
 function(add_bundled_heic)
     set(BUILD_SHARED_LIBS OFF)
     set(CMAKE_AUTOMOC OFF)
     set(CMAKE_AUTOUIC OFF)
+    set(CONFIG_AV1_ENCODER 0 CACHE STRING "Build AV1 encoder" FORCE)
+    set(CONFIG_AV1_DECODER 1 CACHE STRING "Build AV1 decoder" FORCE)
+    foreach(feature IN ITEMS DOCS EXAMPLES TESTS TOOLS)
+        set(ENABLE_${feature} OFF CACHE BOOL "Build libaom ${feature}" FORCE)
+    endforeach()
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    add_subdirectory(${libaom_SOURCE_DIR} ${libaom_BINARY_DIR} EXCLUDE_FROM_ALL)
     foreach(feature IN ITEMS SDL DECODER ENCODER SHERLOCK265 INTERNAL_DEVELOPMENT_TOOLS)
         set(ENABLE_${feature} OFF)
     endforeach()
     set(WITH_FUZZERS OFF)
+    # Both codecs declare a global 'dist' target; namespace libde265's copy.
+    file(READ ${libde265_SOURCE_DIR}/CMakeLists.txt de265_cmake)
+    if(de265_cmake MATCHES "add_custom_target\\(dist")
+        string(REPLACE "add_custom_target(dist" "add_custom_target(libde265_dist"
+            de265_cmake "${de265_cmake}")
+        file(WRITE ${libde265_SOURCE_DIR}/CMakeLists.txt "${de265_cmake}")
+    endif()
     add_subdirectory(${libde265_SOURCE_DIR} ${libde265_BINARY_DIR} EXCLUDE_FROM_ALL)
     target_compile_definitions(de265 INTERFACE LIBDE265_STATIC_BUILD)
     target_include_directories(de265 INTERFACE
@@ -138,14 +157,20 @@ function(add_bundled_heic)
     file(WRITE ${LIBDE265_DIR}/LIBDE265Config.cmake
         "set(LIBDE265_FOUND TRUE)\nset(LIBDE265_LIBRARIES de265)\nset(LIBDE265_INCLUDE_DIRS \"${libde265_SOURCE_DIR}\" \"${libde265_BINARY_DIR}\")\n")
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+    set(AOM_DIR ${libaom_BINARY_DIR}/bundled-config)
+    file(MAKE_DIRECTORY ${AOM_DIR})
+    file(WRITE ${AOM_DIR}/AOMConfig.cmake
+        "set(AOM_FOUND TRUE)\nset(AOM_DECODER_FOUND TRUE)\nset(AOM_LIBRARIES aom)\nset(AOM_INCLUDE_DIRS \"${libaom_SOURCE_DIR}\")\n")
     set(WITH_LIBDE265 ON)
     set(WITH_LIBDE265_PLUGIN OFF)
     foreach(codec IN ITEMS X265 KVAZAAR UVG266 VVDEC VVENC X264 OpenH264_DECODER
-            DAV1D AOM_DECODER AOM_ENCODER SvtEnc RAV1E JPEG_DECODER JPEG_ENCODER
+            DAV1D AOM_ENCODER SvtEnc RAV1E JPEG_DECODER JPEG_ENCODER
             OpenJPEG_ENCODER OpenJPEG_DECODER FFMPEG_DECODER OPENJPH_ENCODER
             UNCOMPRESSED_CODEC WEBCODECS LIBSHARPYUV)
         set(WITH_${codec} OFF)
     endforeach()
+    set(WITH_AOM_DECODER ON)
+    set(WITH_AOM_DECODER_PLUGIN OFF)
     set(ENABLE_PLUGIN_LOADING OFF)
     set(WITH_EXAMPLES OFF)
     set(WITH_GDK_PIXBUF OFF)
@@ -239,8 +264,9 @@ install(DIRECTORY ${qtimageformats_SOURCE_DIR}/LICENSES/
     DESTINATION licenses/QtImageFormats)
 install(FILES ${libheif_SOURCE_DIR}/COPYING DESTINATION licenses RENAME libheif.txt)
 install(FILES ${libde265_SOURCE_DIR}/COPYING DESTINATION licenses RENAME libde265.txt)
+install(FILES ${libaom_SOURCE_DIR}/LICENSE ${libaom_SOURCE_DIR}/PATENTS DESTINATION licenses/libaom)
 
 set(CPACK_PACKAGE_NAME "iv")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG, JPEG 2000, WebP and HEIC viewer")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Single-window JPEG, JPEG 2000, WebP, HEIC and AVIF viewer")
 set(CPACK_VERBATIM_VARIABLES ON)
 include(CPack)

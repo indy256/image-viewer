@@ -43,6 +43,10 @@ jobs:
           version: ${{ matrix.qt-version }}
           cache: true
 
+      - name: Install AV1 build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y nasm perl
+
       - name: Install static Qt and compiler on Windows
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
@@ -53,6 +57,8 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-nasm
+            perl
             mingw-w64-ucrt-x86_64-qt6-static
             mingw-w64-ucrt-x86_64-libpng
             mingw-w64-ucrt-x86_64-libjpeg-turbo

@@ -2,21 +2,25 @@
 
 [![Build](https://github.com/indy256/image-viewer/actions/workflows/build.yml/badge.svg)](https://github.com/indy256/image-viewer/actions/workflows/build.yml)
 
-A single-window viewer for JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), and HEIC/HEIF (`.heic`, `.heif`) images that opens in full-screen mode. Launch with an image filename:
+A single-window viewer for JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), HEIC/HEIF (`.heic`, `.heif`), and AVIF (`.avif`) images that opens in full-screen mode. Launch with an image filename:
 
 ```powershell
 & C:/projects/image-viewer-build/iv.exe "C:/Pictures/photo.jpg"
 ```
 
-Browse JPEG, JP2, WebP, and HEIC images in the same folder alphabetically with the Left and Right arrow keys
+Browse JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetically with the Left and Right arrow keys
 or the mouse wheel (up for previous, down for next).
 Photos automatically fit the window, and newly added files appear without restarting.
 Press F or double-click to switch between fullscreen and windowed mode, drag the
 image to move the window, and press Esc to exit. Your window size and position are
-remembered when switching modes. WebP supports transparency; animated WebP shows its first frame. HEIC/HEIF displays the primary photo, with rotation and cropping applied.
+remembered when switching modes. WebP supports transparency; animated WebP shows its first frame.
+HEIC/HEIF and AVIF display the primary photo, with rotation and cropping applied.
+AVIF animation playback is not supported.
+
+Building AVIF requires Perl and, on x86/x64, NASM or Yasm on PATH.
 
 Build with the local Qt 6.11.2 / MinGW installation. Initial configuration downloads
-pinned OpenJPEG, libwebp, Qt Image Formats, libheif, and libde265 sources. Image decoders
+pinned OpenJPEG, libwebp, Qt Image Formats, libheif, libde265, and libaom sources. Image decoders
 are linked into the viewer and need no extra runtime installation:
 
 ```powershell

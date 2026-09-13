@@ -59,6 +59,7 @@ int main(int argc, char **argv)
     require(QImageReader::supportedImageFormats().contains("jp2"), "JP2 plugin not linked");
     require(QImageReader::supportedImageFormats().contains("webp"), "WebP plugin not linked");
     require(QImageReader::supportedImageFormats().contains("heic"), "HEIC plugin not linked");
+    require(QImageReader::supportedImageFormats().contains("avif"), "AVIF plugin not linked");
     require(app.arguments().size() == 3, "Missing fixture directories");
     auto heicFixture = [&](const QString &name) {
         QFile file(QDir(app.arguments().at(2)).filePath(name));
@@ -66,6 +67,25 @@ int main(int argc, char **argv)
         return file.readAll();
     };
     const QByteArray heic = heicFixture("rainbow-451x461.heic");
+    const QByteArray avif = heicFixture("clap_cropped.avif");
+    const QImage decodedAvif = QImage::fromData(avif, "avif");
+    require(decodedAvif.size() == QSize(64,64), "AVIF decoding/cropping failed");
+    require(QImage::fromData(avif).size() == decodedAvif.size(), "AVIF detection failed");
+    require(QImage::fromData(avif.left(64), "avif").isNull(), "Truncated AVIF should fail");
+    const QImage alphaAvif = QImage::fromData(heicFixture("simple_osm_tile_alpha.avif"), "avif");
+    require(!alphaAvif.isNull(), "AVIF alpha fixture failed to decode");
+    bool avifTransparentPixel = false;
+    for (int y = 0; y < alphaAvif.height(); ++y)
+        for (int x = 0; x < alphaAvif.width(); ++x)
+            avifTransparentPixel |= alphaAvif.pixelColor(x,y).alpha() < 255;
+    require(avifTransparentPixel, "AVIF transparency was lost");
+    std::vector<std::future<QImage>> avifDecodes;
+    for (int i = 0; i < 4; ++i)
+        avifDecodes.push_back(std::async(std::launch::async, [avif] {
+            return QImage::fromData(avif, "avif");
+        }));
+    for (auto &decode : avifDecodes)
+        require(decode.get() == decodedAvif, "Concurrent AVIF decoding failed");
     const QImage decodedHeic = QImage::fromData(heic, "heic");
     require(decodedHeic.size() == QSize(451, 461), "HEIC decoding failed");
     require(QImage::fromData(heic, "heif").size() == decodedHeic.size(), "HEIF alias failed");
@@ -238,5 +258,25 @@ int main(int argc, char **argv)
     writeFile(heicPath, heicFixture("clap_cropped.heic"));
     require(waitFor([&] { return viewer.windowTitle().contains(QString::fromUtf8("64 \xC3\x97 64")); }),
             "Changed HEIC was not reloaded");
-    std::cout << "PASS: JP2/WebP/HEIC decoding, mixed navigation, preloading, live updates, corrupt file recovery\n";
+    const QString avifPath = folder.filePath("g.AVIF");
+    writeFile(avifPath, avif);
+    require(waitFor([&] { return viewer.windowTitle().contains("/18)"); }),
+            "Added uppercase AVIF was not discovered");
+    wheel(-120);
+    require(waitFor([&] { return viewer.windowTitle().contains("g.AVIF (18/18)")
+        && viewer.windowTitle().contains(QString::fromUtf8("64 \xC3\x97 64")); }),
+            "Navigation to AVIF failed");
+    ImageViewer avifViewer({"iv", avifPath});
+    avifViewer.resize(320, 240);
+    avifViewer.show();
+    require(waitFor([&] { return avifViewer.windowTitle().contains(QString::fromUtf8("64 \xC3\x97 64")); }),
+            "Opening AVIF from command line failed");
+    writeFile(avifPath, QByteArray("invalid AVIF"));
+    require(waitFor([&] { return viewer.grab().toImage().pixelColor(10,10) == QColor(28,28,28); }),
+            "Changed AVIF was not reloaded");
+    key(Qt::Key_Left);
+    require(waitFor([&] { return viewer.windowTitle().contains("(17/18)")
+        && viewer.windowTitle().contains(QString::fromUtf8("64 \xC3\x97 64")); }),
+            "Navigation after corrupt AVIF failed");
+    std::cout << "PASS: JP2/WebP/HEIC/AVIF decoding, navigation, preloading, live updates, corrupt file recovery\n";
 }
