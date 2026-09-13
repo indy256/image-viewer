@@ -463,7 +463,7 @@ private:
     }
 
     static constexpr qsizetype preloadRadius_ = 5;
-    static constexpr qsizetype maxPendingDecodes_ = 5;
+    static constexpr qsizetype maxPendingDecodes_ = 7;
 
     bool dragPending_ = false;
     qint64 wheelRemainder_ = 0;

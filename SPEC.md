@@ -88,7 +88,7 @@ Usage, invalid-startup-path, and empty-folder views use `Image Viewer` as the ti
 
 - Cache decoded images at full resolution for the current file and up to 5
   preceding and 5 following files: a sliding range of up to 11 files.
-- Decode JPEG, JP2, WebP, HEIC, and AVIF images in background workers with at most five requests
+- Decode JPEG, JP2, WebP, HEIC, and AVIF images in background workers with at most seven requests
   in flight. Each JP2 request uses an independent OpenJPEG decoder.
 - Prioritize the current selection, then its nearest neighbors.
 - Display cached images without waiting for disk access or decoding. Display a
