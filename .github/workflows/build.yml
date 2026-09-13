@@ -12,7 +12,7 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && 120 || 30 }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,7 +23,7 @@ jobs:
             package-format: TGZ
             artifact-path: dist/iv.AppImage
           - os: windows-latest
-            qt-version: '6.8.3'
+            qt-version: '6.11.2'
             package-format: ZIP
             artifact-path: dist/iv.exe
           - os: macos-latest
@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y nasm perl
 
-      - name: Install static Qt and compiler on Windows
+      - name: Install Windows build tools
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
@@ -59,16 +59,29 @@ jobs:
             mingw-w64-ucrt-x86_64-ninja
             mingw-w64-ucrt-x86_64-nasm
             perl
-            mingw-w64-ucrt-x86_64-qt6-static
-            mingw-w64-ucrt-x86_64-libpng
-            mingw-w64-ucrt-x86_64-libjpeg-turbo
-            mingw-w64-ucrt-x86_64-libwebp
-            mingw-w64-ucrt-x86_64-libtiff
-            mingw-w64-ucrt-x86_64-freetype
-            mingw-w64-ucrt-x86_64-harfbuzz
-            mingw-w64-ucrt-x86_64-brotli
-            mingw-w64-ucrt-x86_64-dbus
-            mingw-w64-ucrt-x86_64-openssl
+
+      - name: Identify Windows toolchain
+        if: runner.os == 'Windows'
+        id: toolchain
+        shell: msys2 {0}
+        run: |
+          echo "key=$(pacman -Q | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache static Qt with LTO
+        if: runner.os == 'Windows'
+        id: qt-lto
+        uses: actions/cache@v4
+        with:
+          path: .qt-lto
+          key: qt-lto-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.key }}-${{ hashFiles('scripts/build-qt-windows.ps1', 'scripts/qt-mingw-lto.cmake') }}
+
+      - name: Build static Qt with LTO
+        if: runner.os == 'Windows' && steps.qt-lto.outputs.cache-hit != 'true'
+        shell: msys2 {0}
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-qt-windows.ps1
+          -WorkDirectory "$(cygpath -m "$RUNNER_TEMP/qt-lto")"
+          -InstallDirectory "$(cygpath -m "$GITHUB_WORKSPACE/.qt-lto")" -Parallel 2
 
       - name: Configure
         if: runner.os != 'Windows'
@@ -87,8 +100,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: msys2 {0}
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/ucrt64/qt6-static -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DZLIB_USE_STATIC_LIBS=ON -DOPENSSL_USE_STATIC_LIBS=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
-          cmake --build build --parallel
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/.qt-lto" -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON -DIMAGE_VIEWER_BUILD_TESTS=ON
+          cmake --build build --parallel 2
           ctest --test-dir build -C Release --output-on-failure
           mkdir -p dist
           cp build/iv.exe dist/iv.exe

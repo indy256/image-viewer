@@ -49,8 +49,25 @@ macOS packages are not Developer ID signed or notarized.
 
 Windows Release builds enable link-time optimization (LTO), optimize for size,
 and strip symbols with MinGW. Set `-DIMAGE_VIEWER_LTO=OFF` to disable LTO.
-The prebuilt static Qt libraries are not rebuilt with LTO; optimization across
-their internals would require an LTO-enabled Qt build.
+Windows CI also builds Qt Base 6.11.2 statically with LTO and size optimization.
+The Qt installation is cached per toolchain and build-script version. Linux and
+macOS use prebuilt Qt. `IMAGE_VIEWER_LTO` controls the application build; Qt's
+LTO setting is determined when Qt itself is built.
+
+To build the same Windows Qt installation locally, use the MSYS2 UCRT64 toolchain
+and put its GCC, CMake, Ninja, and Perl on PATH, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build-qt-windows.ps1 -WorkDirectory ../image-viewer-build/qt-ucrt-lto -InstallDirectory ../image-viewer-build/qt-ucrt-lto/install -Parallel 2
+& ../image-viewer-build/qt-ucrt-lto/install/bin/qt-cmake.bat -S . -B ../image-viewer-build/iv-lto -G Ninja -DCMAKE_BUILD_TYPE=Release -DIMAGE_VIEWER_STATIC_RUNTIME=ON -DIMAGE_VIEWER_LTO=ON
+cmake --build ../image-viewer-build/iv-lto --parallel 2
+```
+
+Use the same compiler for Qt and the viewer: GCC LTO archives are compiler-version dependent.
+The script applies MinGW LTO workarounds to the downloaded Qt sources (bigobj and
+duplicate SIMD assembler macros) and disables GCC's problematic constructor/destructor decloning pass.
+Qt's Windows platform plugins, Widgets accessibility files, and widget-window implementation use native objects
+to avoid a MinGW LTO COMDAT-thunk bug; Core, Gui, and the remaining Widgets code use LTO.
 
 Pushing a version tag such as `v1.0.0` builds all three packages and publishes
 a GitHub Release with the standalone downloads attached, after every build succeeds:
