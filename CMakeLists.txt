@@ -181,6 +181,11 @@ qt_add_executable(iv
     MACOSX_BUNDLE
     main.cpp
 )
+if(APPLE)
+    set_target_properties(iv PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/Info.plist.in"
+    )
+endif()
 get_target_property(qt_library_type Qt6::Core TYPE)
 function(configure_viewer_target target)
     target_link_libraries(${target} PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic)

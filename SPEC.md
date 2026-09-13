@@ -22,6 +22,9 @@ iv <path-to-image>
   case-insensitive names using case-sensitive order. Sorting is lexical, so
   `10.jpg` precedes `2.jpg`.
 - Select the supplied file initially.
+- On macOS, accept Finder Open With, file associations, and Dock file-open requests.
+  Open the requested image in the existing window, switching the watched folder
+  and preload cache when necessary. For multiple requests, the last image is selected.
 - Display usage instructions when the application argument count is not one.
   Display an error if the supplied path is not an existing file with a supported image extension.
 

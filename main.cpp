@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
+#include <QFileOpenEvent>
 #include <QFileSystemWatcher>
 #include <QImageReader>
 #include <QKeyEvent>
@@ -35,18 +36,7 @@ public:
         resize(1000, 700);
         setMinimumSize(1, 1);
         setWindowTitle(tr("Image Viewer"));
-        if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
-            return;
-        }
-
-        const QFileInfo initial(arguments.at(1));
-        if (!initial.isFile() || imageFormat(initial).isEmpty()) {
-            message_ = tr("Not a supported image file (JPEG, JP2, WebP, HEIC/HEIF or AVIF): %1").arg(arguments.at(1));
-            return;
-        }
-
-        directory_ = initial.absolutePath();
+        qApp->installEventFilter(this);
         refreshTimer_.setSingleShot(true);
         refreshTimer_.setInterval(150);
         connect(&watcher_, &QFileSystemWatcher::directoryChanged, this,
@@ -54,6 +44,37 @@ public:
         connect(&watcher_, &QFileSystemWatcher::fileChanged, this,
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
+        if (arguments.size() != 2) {
+            message_ = tr("Usage: iv <file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
+            return;
+        }
+
+        openFile(arguments.at(1));
+    }
+
+    void openFile(const QString &path)
+    {
+        const QFileInfo initial(path);
+        if (!initial.isFile() || imageFormat(initial).isEmpty()) {
+            image_ = QImage();
+            message_ = tr("Not a supported image file (JPEG, JP2, WebP, HEIC/HEIF or AVIF): %1").arg(path);
+            update();
+            return;
+        }
+
+        refreshTimer_.stop();
+        if (directory_ != initial.absolutePath()) {
+            if (!watcher_.directories().isEmpty())
+                watcher_.removePaths(watcher_.directories());
+            if (!watcher_.files().isEmpty())
+                watcher_.removePaths(watcher_.files());
+            cache_.clear();
+            image_ = QImage();
+            files_.clear();
+            stamps_.clear();
+            index_ = -1;
+            directory_ = initial.absolutePath();
+        }
         refreshDirectory(initial.absoluteFilePath());
     }
 
@@ -118,6 +139,24 @@ public:
     }
 
 protected:
+    bool eventFilter(QObject *object, QEvent *event) override
+    {
+        if (object == qApp && event->type() == QEvent::FileOpen) {
+            const auto *openEvent = static_cast<QFileOpenEvent *>(event);
+            if (!openEvent->url().isLocalFile())
+                return false;
+            openFile(openEvent->url().toLocalFile());
+            if (isMinimized())
+                showNormal();
+            raise();
+            activateWindow();
+            setFocus(Qt::OtherFocusReason);
+            event->accept();
+            return true;
+        }
+        return QWidget::eventFilter(object, event);
+    }
+
     void mousePressEvent(QMouseEvent *event) override
     {
         if (event->button() == Qt::LeftButton) {
@@ -232,7 +271,8 @@ private:
 
     void refreshDirectory(const QString &preferredPath = {})
     {
-        const QString selected = index_ >= 0 ? files_.at(index_) : preferredPath;
+        const QString selected = !preferredPath.isEmpty() ? preferredPath
+            : index_ >= 0 ? files_.at(index_) : QString();
         QStringList files;
         QMap<QString, FileStamp> stamps;
         const auto entries = QDir(directory_).entryInfoList(
@@ -269,7 +309,7 @@ private:
             watcher_.removePaths(removed);
         if (!added.isEmpty())
             watcher_.addPaths(added);
-        if (files == files_ && stamps == stamps_)
+        if (files == files_ && stamps == stamps_ && preferredPath.isEmpty())
             return;
         for (auto it = cache_.begin(); it != cache_.end();) {
             if (!stamps.contains(it.key()) || stamps.value(it.key()) != stamps_.value(it.key()))

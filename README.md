@@ -54,6 +54,11 @@ Linux AppImages target the Ubuntu version used by `ubuntu-latest` and newer comp
 They still depend on the host's standard system libraries and graphics drivers.
 macOS packages are not Developer ID signed or notarized.
 
+On macOS, `iv.app` accepts images opened from Finder or dropped onto its Dock icon,
+including when the viewer is already running. To associate a format, move `iv.app`
+to Applications, select an image in Finder, press Command-I, and choose **iv**
+under **Open with**, then click **Change All**. Repeat for other extensions.
+
 Windows Release builds enable link-time optimization (LTO), optimize for size,
 and strip symbols with MinGW. Set `-DIMAGE_VIEWER_LTO=OFF` to disable LTO.
 Windows CI uses MSVC and builds Qt Base 6.11.2 statically with LTO and size optimization.
