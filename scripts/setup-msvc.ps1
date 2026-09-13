@@ -13,8 +13,19 @@ if ($LASTEXITCODE -ne 0 -or -not $installation) {
 $before = @{}
 Get-ChildItem Env: | ForEach-Object { $before[$_.Name] = $_.Value }
 $hostArchitecture = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
-& "$installation/Common7/Tools/Launch-VsDevShell.ps1" -Arch $Architecture `
-    -HostArch $hostArchitecture -SkipAutomaticLocation -NoLogo
+# Older Developer PowerShell launchers reject native ARM64 hosts even when the
+# installed compiler supports them. Use the batch entry point directly.
+$command = 'call "{0}\Common7\Tools\VsDevCmd.bat" -no_logo -arch={1} -host_arch={2} >nul && set' -f `
+    $installation, $Architecture, $hostArchitecture
+$environmentLines = & $env:ComSpec /d /s /c $command
+if ($LASTEXITCODE -ne 0) {
+    throw "Visual Studio environment setup failed with exit code $LASTEXITCODE"
+}
+foreach ($line in $environmentLines) {
+    if ($line -match '^([^=]+)=(.*)$') {
+        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+    }
+}
 if ($env:VSCMD_ARG_TGT_ARCH -ne $Architecture) {
     throw "Visual Studio did not select the requested architecture: $Architecture"
 }
