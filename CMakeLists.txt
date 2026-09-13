@@ -48,6 +48,8 @@ ExternalProject_Add(turbojpeg_build
     URL_HASH SHA256=3a13a5ba767dc8264bc40b185e41368a80d5d5f945944d1dbaa4b2fb0099f4e5
     SOURCE_DIR "${turbojpeg_root}/src"
     BINARY_DIR "${turbojpeg_root}/build"
+    PATCH_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/scripts/isolate-turbojpeg.cmake
     CMAKE_ARGS
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
@@ -64,6 +66,8 @@ ExternalProject_Add(turbojpeg_build
     BUILD_BYPRODUCTS "${turbojpeg_library}"
     INSTALL_COMMAND ""
 )
+ExternalProject_Add_StepDependencies(turbojpeg_build patch
+    "${CMAKE_CURRENT_SOURCE_DIR}/scripts/isolate-turbojpeg.cmake")
 file(MAKE_DIRECTORY "${turbojpeg_root}/src/src" "${turbojpeg_root}/build")
 add_library(iv_turbojpeg STATIC IMPORTED)
 set_target_properties(iv_turbojpeg PROPERTIES

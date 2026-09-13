@@ -138,6 +138,8 @@ PNG uses Qt's built-in image reader, including transparency, without an addition
 image plugin. Transparent pixels show the viewer's background.
 JPEG loading uses a statically linked libjpeg-turbo 3.1.3 decoder with required
 SIMD acceleration. Each worker owns its decoder; RGB and grayscale images decode
+through privately prefixed libjpeg symbols so static Qt and the accelerated
+decoder cannot mix their internal implementations. Images decode
 directly to display pixels, preserving ICC profiles and EXIF orientation. CMYK and
 higher-precision JPEGs use Qt's reader. The configured image allocation limit also
 bounds the accelerated output raster and, separately, decoder working buffers.
