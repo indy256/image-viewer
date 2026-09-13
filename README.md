@@ -47,9 +47,10 @@ Every CI build uploads standalone downloads in the workflow run's Artifacts sect
   and the compiler runtime linked statically.
 - Linux x64: `iv-Linux-X64.AppImage`. Make it executable with `chmod +x`
   and run it with an image filename. Qt is bundled inside the AppImage.
-- macOS ARM64: a ZIP containing `iv.app`, with its Qt frameworks and
-  plugins inside the bundle. Extract it and run
-  `iv.app/Contents/MacOS/iv /path/to/photo.jpg`.
+- macOS ARM64: `iv-macOS-ARM64.dmg` containing `iv.app`, with its Qt frameworks
+  and plugins inside the bundle. Open the disk image and drag `iv.app` to
+  Applications. Run `/Applications/iv.app/Contents/MacOS/iv /path/to/photo.jpg`
+  or open an image with **iv** in Finder.
 
 A separate **Windows x64 fast build** uses cached, prebuilt Qt 6.8.3 with LTO
 disabled. Download the `windows-x64-fast` artifact, extract it, and run `bin/iv.exe`.

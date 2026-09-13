@@ -81,8 +81,8 @@ jobs:
           - os: macos-latest
             # Qt 6.8.3 links AGL, which newer macOS SDKs no longer provide.
             qt-version: '6.11.2'
-            package-format: ZIP
-            artifact-path: dist/iv-macOS-ARM64.zip
+            package-format: DragNDrop
+            artifact-path: dist/iv-macOS-ARM64.dmg
 
     steps:
       - name: Check out source
