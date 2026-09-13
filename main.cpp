@@ -50,7 +50,7 @@ public:
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nUp / Down: increase / decrease temporary gamma\nF: toggle full screen\nS: toggle temporary sharpening\nEsc: exit");
+            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nUp / Down: increase / decrease temporary gamma\nF: toggle full screen\ns: toggle temporary mild sharpening\nS (Shift+S): toggle temporary strong sharpening\nEsc: exit");
             return;
         }
 
@@ -225,7 +225,11 @@ protected:
         }
         if (event->key() == Qt::Key_S) {
             if (!event->isAutoRepeat() && !image_.isNull()) {
-                sharpening_ = !sharpening_;
+                const bool uppercase = event->text().isEmpty()
+                    ? event->modifiers().testFlag(Qt::ShiftModifier)
+                    : event->text() == QLatin1String("S");
+                const Sharpening requested = uppercase ? Sharpening::Strong : Sharpening::Mild;
+                sharpening_ = sharpening_ == requested ? Sharpening::Off : requested;
                 adjustedImage_ = QImage();
                 update();
             }
@@ -278,13 +282,13 @@ protected:
             const QRect target(QPoint((width() - fitted.width()) / 2,
                                       (height() - fitted.height()) / 2), fitted);
             painter.setRenderHint(QPainter::SmoothPixmapTransform);
-            if (sharpening_ || gammaTenths_ != 10) {
+            if (sharpening_ != Sharpening::Off || gammaTenths_ != 10) {
                 const QSize pixels = (fitted * devicePixelRatioF()).expandedTo(QSize(1, 1));
                 if (adjustedImage_.size() != pixels) {
                     adjustedImage_ = image_.scaled(
                         pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-                    if (sharpening_)
-                        adjustedImage_ = sharpen(adjustedImage_);
+                    if (sharpening_ != Sharpening::Off)
+                        adjustedImage_ = sharpen(adjustedImage_, sharpening_);
                     if (gammaTenths_ != 10)
                         adjustGamma(adjustedImage_, gammaTenths_);
                 }
@@ -301,6 +305,7 @@ protected:
 
 private:
     using FileStamp = QPair<qint64, QDateTime>;
+    enum class Sharpening { Off, Mild, Strong };
 
     static void adjustGamma(QImage &image, int gammaTenths)
     {
@@ -320,14 +325,16 @@ private:
         }
     }
 
-    static QImage sharpen(const QImage &image)
+    static QImage sharpen(const QImage &image, Sharpening sharpening)
     {
         const QImage source = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
         QImage result = source.copy();
         if (source.isNull() || result.isNull())
             return {};
-        // A mild four-neighbor unsharp mask, with replicated image edges.
+        // Four-neighbor unsharp mask, with replicated image edges. Strong mode
+        // doubles the detail boost, always using the original display image.
         // Preserve alpha and keep premultiplied color channels within its range.
+        const int strength = sharpening == Sharpening::Strong ? 2 : 1;
         for (int y = 0; y < source.height(); ++y) {
             const auto *above = reinterpret_cast<const QRgb *>(source.constScanLine(std::max(0, y - 1)));
             const auto *row = reinterpret_cast<const QRgb *>(source.constScanLine(y));
@@ -340,8 +347,10 @@ private:
                 const int alpha = qAlpha(center);
                 const auto channel = [&](int shift) {
                     const auto value = [shift](QRgb pixel) { return int((pixel >> shift) & 255); };
-                    return std::clamp((6 * value(center) - value(left) - value(right)
-                                       - value(above[x]) - value(below[x]) + 1) / 2, 0, alpha);
+                    const int detail = 4 * value(center) - value(left) - value(right)
+                        - value(above[x]) - value(below[x]);
+                    return std::clamp((2 * value(center) + strength * detail + 1) / 2,
+                                      0, alpha);
                 };
                 output[x] = qRgba(channel(16), channel(8), channel(0), alpha);
             }
@@ -558,7 +567,7 @@ private:
         const auto it = cache_.constFind(path);
         const QImage nextImage = it == cache_.cend() ? QImage() : it->image;
         if (image_.cacheKey() != nextImage.cacheKey()) {
-            sharpening_ = false;
+            sharpening_ = Sharpening::Off;
             gammaTenths_ = 10;
             adjustedImage_ = QImage();
         }
@@ -637,7 +646,7 @@ private:
     qsizetype index_ = -1;
     QImage image_;
     QImage adjustedImage_;
-    bool sharpening_ = false;
+    Sharpening sharpening_ = Sharpening::Off;
     int gammaTenths_ = 10;
     QString message_;
     QFileSystemWatcher watcher_;

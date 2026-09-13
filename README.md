@@ -14,7 +14,9 @@ iv photo.jpg
 Browse PNG, JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetically with the Left and Right arrow keys
 or the mouse wheel (up for previous, down for next).
 Photos automatically fit the window, and newly added files appear without restarting.
-Press S to toggle sharpening and Up / Down to increase / decrease gamma for
+Press lowercase s for mild sharpening or uppercase S (Shift+S) for strong sharpening.
+Press the same key again to turn it off, or the other key to switch strength.
+Use Up / Down to increase / decrease gamma for
 the current image in 0.1 steps (default 1.0, range 0.1–4.0). Up lightens midtones;
 Down darkens them, preserving black and white. Hold an arrow key to keep adjusting. Both effects
 reset when another image loads and are never saved to the image file or remembered between runs.
