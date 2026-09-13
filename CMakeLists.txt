@@ -229,12 +229,17 @@ if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
         # Qt normally excludes system libraries. Bundle the vendor-neutral GL
         # loader and its dispatcher; GPU drivers remain supplied by the host.
         list(APPEND deploy_options POST_INCLUDE_REGEXES
-            [[/lib(OpenGL|GLdispatch)[.]so([.].*)?$]])
+            "/libOpenGL[.]so[.]"
+            "/libGLdispatch[.]so[.]")
         # A bundled glibc cannot safely use the host's ELF loader. Exclude it
         # by SONAME before traversal, regardless of system-directory aliases.
-        list(APPEND deploy_options PRE_EXCLUDE_REGEXES
-            [[^ld-linux.*[.]so([.].*)?$]]
-            [[^lib(c|m|mvec|pthread|dl|rt|resolv|util|anl|BrokenLocale|thread_db|nss_[^.]+)[.]so([.].*)?$]])
+        # Qt serializes these arguments unquoted into its deployment script;
+        # use separate patterns without parentheses to preserve CMake parsing.
+        list(APPEND deploy_options PRE_EXCLUDE_REGEXES "^ld-linux.*[.]so[.]")
+        foreach(library IN ITEMS c m mvec pthread dl rt resolv util anl BrokenLocale thread_db)
+            list(APPEND deploy_options "^lib${library}[.]so[.]")
+        endforeach()
+        list(APPEND deploy_options "^libnss_.*[.]so[.]")
     endif()
     qt_generate_deploy_app_script(
         TARGET iv
