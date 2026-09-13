@@ -20,7 +20,8 @@ jobs:
       - name: Install prebuilt Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.11.2'
+          # aqtinstall 3.3 cannot resolve Qt 6.11's split repository layout.
+          version: '6.8.3'
           arch: win64_msvc2022_64
           archives: qtbase
           cache: true

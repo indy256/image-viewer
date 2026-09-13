@@ -171,7 +171,7 @@ GitHub Actions builds Release packages on `ubuntu-latest`, `windows-latest`, `wi
 uploads its platform artifact. Windows CI checks executable architecture and runtime DLL dependencies.
 The Windows ARM64 job uses native ARM64 MSVC tools and a separate Qt cache.
 
-An independent Windows x64 fast-build job uses cached prebuilt Qt 6.11.2 for
+An independent Windows x64 fast-build job uses cached prebuilt Qt 6.8.3 for
 MSVC, disables LTO and static-runtime linking, and uploads `windows-x64-fast`.
 This portable artifact includes `bin/iv.exe`, Qt DLLs, plugins, runtime files,
 and license notices. It is available from workflow runs and is excluded from

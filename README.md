@@ -45,7 +45,7 @@ Every CI build uploads standalone downloads in the workflow run's Artifacts sect
   plugins inside the bundle. Extract it and run
   `iv.app/Contents/MacOS/iv /path/to/photo.jpg`.
 
-A separate **Windows x64 fast build** uses cached, prebuilt Qt 6.11.2 with LTO
+A separate **Windows x64 fast build** uses cached, prebuilt Qt 6.8.3 with LTO
 disabled. Download the `windows-x64-fast` artifact, extract it, and run `bin/iv.exe`.
 Keep the accompanying Qt DLLs and plugins with it. This job runs independently
 of the standalone builds and provides a workflow artifact, not a release asset.
