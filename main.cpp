@@ -87,9 +87,9 @@ public:
         windowedState_ = windowState();
         windowedGeometry_ = isMaximized() ? normalGeometry() : geometry();
         fitPending_ = false;
-#ifndef Q_OS_MACOS
-        // macOS manages its own frame during the native fullscreen transition.
-        // Set the platform flag before Qt calculates fullscreen geometry elsewhere.
+#ifdef Q_OS_WIN
+        // Windows needs an explicit frameless hint to cover the screen edges.
+        // Other platforms let the window manager handle fullscreen decorations.
         // QWindow flags preserve the native window and mouse click tracking.
         winId();
         windowHandle()->setFlag(Qt::FramelessWindowHint, true);
@@ -104,7 +104,7 @@ public:
         if (isFullScreen()) {
             const QRect screenArea = screen()->availableGeometry();
             showNormal();
-#ifndef Q_OS_MACOS
+#ifdef Q_OS_WIN
             windowHandle()->setFlag(Qt::FramelessWindowHint, false);
 #endif
             refreshNativeFrame();
@@ -129,11 +129,16 @@ public:
                 }
             });
 #elif defined(Q_OS_LINUX)
-            // X11 can restore the pre-fullscreen stacking order. Request both
-            // stacking and focus after restoring the frame and geometry.
-            raise();
-            activateWindow();
-            setFocus(Qt::OtherFocusReason);
+            // Request activation after Qt has processed the restored window.
+            // Changing decoration flags here can make X11 reframe the window
+            // and undo focus, so those flags are only changed on Windows.
+            QTimer::singleShot(0, this, [this] {
+                if (isVisible() && !isFullScreen()) {
+                    raise();
+                    activateWindow();
+                    setFocus(Qt::OtherFocusReason);
+                }
+            });
 #endif
         } else {
             enterFullScreen();
