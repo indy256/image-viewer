@@ -1,3 +1,6 @@
+// Copyright (C) 2026 indy256
+// SPDX-License-Identifier: GPL-3.0-only
+
 #include <QApplication>
 #include <QDateTime>
 #include <QDir>

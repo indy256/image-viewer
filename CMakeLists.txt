@@ -244,7 +244,7 @@ if(NOT qt_library_type STREQUAL "STATIC_LIBRARY")
     )
     install(SCRIPT ${deploy_script})
 endif()
-install(FILES README.md DESTINATION .)
+install(FILES README.md LICENSE THIRD_PARTY_NOTICES.md DESTINATION .)
 install(FILES ${openjpeg_SOURCE_DIR}/LICENSE
     DESTINATION licenses RENAME OpenJPEG.txt)
 

@@ -2,6 +2,9 @@
 
 [![Build](https://github.com/indy256/image-viewer/actions/workflows/build.yml/badge.svg)](https://github.com/indy256/image-viewer/actions/workflows/build.yml)
 
+Licensed under the [GNU GPL v3.0 only](LICENSE) (`GPL-3.0-only`).
+Third-party dependencies retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
 A single-window viewer for JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), HEIC/HEIF (`.heic`, `.heif`), and AVIF (`.avif`) images that opens in full-screen mode. Launch with an image filename:
 
 ```powershell
