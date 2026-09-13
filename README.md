@@ -5,13 +5,13 @@
 Licensed under the [GNU GPL v3.0 only](LICENSE) (`GPL-3.0-only`).
 Third-party dependencies retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
-A single-window viewer for JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), HEIC/HEIF (`.heic`, `.heif`), and AVIF (`.avif`) images that opens in full-screen mode. Launch with an image filename:
+A single-window viewer for PNG (`.png`), JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), HEIC/HEIF (`.heic`, `.heif`), and AVIF (`.avif`) images that opens in full-screen mode. Launch with an image filename:
 
 ```powershell
 iv photo.jpg
 ```
 
-Browse JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetically with the Left and Right arrow keys
+Browse PNG, JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetically with the Left and Right arrow keys
 or the mouse wheel (up for previous, down for next).
 Photos automatically fit the window, and newly added files appear without restarting.
 Press F or double-click to switch between fullscreen and windowed mode, drag the

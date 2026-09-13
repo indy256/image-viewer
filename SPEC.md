@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`iv` is a single-window desktop JPEG, JPEG 2000, WebP, HEIC, and AVIF viewer built with Qt Widgets. It opens a
+`iv` is a single-window desktop PNG, JPEG, JPEG 2000, WebP, HEIC, and AVIF viewer built with Qt Widgets. It opens a
 specified image, supports fast keyboard navigation through its folder, and
 updates the image list when the folder changes.
 
@@ -16,7 +16,7 @@ iv <path-to-image>
   directory. Paths containing spaces must be quoted in the shell.
 - Open in fullscreen mode, including when displaying usage or error messages.
 - Browse the supplied file's containing directory, without searching subfolders.
-- Include files with `.jpg`, `.jpeg`, `.jp2`, `.webp`, `.heic`, `.heif`, or `.avif` extensions, matched case-insensitively,
+- Include files with `.png`, `.jpg`, `.jpeg`, `.jp2`, `.webp`, `.heic`, `.heif`, or `.avif` extensions, matched case-insensitively,
   including hidden files.
 - Sort by filename in case-insensitive alphabetical order. Resolve equal
   case-insensitive names using case-sensitive order. Sorting is lexical, so
@@ -93,7 +93,7 @@ Usage, invalid-startup-path, and empty-folder views use `Image Viewer` as the ti
 
 - Cache decoded images at full resolution for the current file and up to 5
   preceding and 5 following files: a sliding range of up to 11 files.
-- Decode JPEG, JP2, WebP, HEIC, and AVIF images in background workers with at most seven requests
+- Decode PNG, JPEG, JP2, WebP, HEIC, and AVIF images in background workers with at most seven requests
   in flight. Each JP2 request uses an independent OpenJPEG decoder.
 - Prioritize the current selection, then its nearest neighbors.
 - Display cached images without waiting for disk access or decoding. Display a
@@ -116,7 +116,7 @@ to finish safely.
 ## Live folder updates
 
 Use filesystem event notifications for the containing folder and individual
-JPEG, JP2, WebP, HEIC/HEIF, or AVIF files. Group events with a 150 ms debounce before rescanning; there is no
+PNG, JPEG, JP2, WebP, HEIC/HEIF, or AVIF files. Group events with a 150 ms debounce before rescanning; there is no
 periodic polling.
 
 Rescans discover added, removed, renamed, and changed files, rebuild alphabetical
@@ -126,7 +126,7 @@ Change detection uses file size and last-modified time.
 
 Preserve the selected path when it remains present. If it disappears, select the
 file at its previous list index, clamped to the new list bounds. When the folder
-has no JPEG, JP2, WebP, HEIC/HEIF, or AVIF files, display a waiting message and continue watching it. Select the
+has no PNG, JPEG, JP2, WebP, HEIC/HEIF, or AVIF files, display a waiting message and continue watching it. Select the
 first available image when files appear in the empty folder.
 
 ## Build and distribution
@@ -134,6 +134,8 @@ first available image when files appear in the empty folder.
 The project uses C++17, CMake 3.21 or newer, and Qt 6.8 or newer with Widgets.
 The executable target is `iv`. Windows builds also link the system DWM library.
 JPEG 2000 support uses a static Qt image plugin backed by OpenJPEG 2.5.4.
+PNG uses Qt's built-in image reader, including transparency, without an additional
+image plugin. Transparent pixels show the viewer's background.
 Initial configuration downloads the checksum-verified OpenJPEG source archive;
 subsequent builds reuse it. A C compiler is required to build the codec.
 

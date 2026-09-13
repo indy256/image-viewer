@@ -46,7 +46,7 @@ public:
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
+            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nF: toggle full screen\nEsc: exit");
             return;
         }
 
@@ -58,7 +58,7 @@ public:
         const QFileInfo initial(path);
         if (!initial.isFile() || imageFormat(initial).isEmpty()) {
             image_ = QImage();
-            message_ = tr("Not a supported image file (JPEG, JP2, WebP, HEIC/HEIF or AVIF): %1").arg(path);
+            message_ = tr("Not a supported image file (PNG, JPEG, JP2, WebP, HEIC/HEIF or AVIF): %1").arg(path);
             update();
             return;
         }
@@ -341,7 +341,7 @@ private:
         if (files_.isEmpty()) {
             index_ = -1;
             image_ = QImage();
-            message_ = tr("No JPEG, JP2, WebP, HEIC/HEIF or AVIF files in this folder. Waiting for images...");
+            message_ = tr("No PNG, JPEG, JP2, WebP, HEIC/HEIF or AVIF files in this folder. Waiting for images...");
             setWindowTitle(tr("Image Viewer"));
             update();
             return;
@@ -438,7 +438,7 @@ private:
         const QByteArray suffix = file.suffix().toLower().toLatin1();
         if (suffix == "jpg")
             return "jpeg";
-        if (suffix == "jpeg" || suffix == "jp2" || suffix == "webp"
+        if (suffix == "png" || suffix == "jpeg" || suffix == "jp2" || suffix == "webp"
             || suffix == "heic" || suffix == "heif" || suffix == "avif")
             return suffix;
         return {};
