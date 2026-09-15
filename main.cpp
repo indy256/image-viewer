@@ -58,7 +58,7 @@ protected:
         QPainter painter(this);
         painter.fillRect(rect(), isDown() ? QColor(170, 35, 35) : QColor(40, 40, 40, 220));
         painter.setRenderHint(QPainter::Antialiasing);
-        painter.setPen(QPen(QColor(160, 160, 160), 2, Qt::SolidLine, Qt::RoundCap));
+        painter.setPen(QPen(QColor(160, 160, 160), 1, Qt::SolidLine, Qt::RoundCap));
         painter.drawLine(17, 17, 31, 31);
         painter.drawLine(31, 17, 17, 31);
     }
