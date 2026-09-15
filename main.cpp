@@ -16,6 +16,7 @@
 #include <QImageReader>
 #include <QKeyEvent>
 #include <QKeySequence>
+#include <QLabel>
 #include <QMap>
 #include <QMenu>
 #include <QMouseEvent>
@@ -79,6 +80,16 @@ public:
         setMinimumSize(1, 1);
         setMouseTracking(true);
         connect(&closeButton_, &QAbstractButton::clicked, this, &QWidget::close);
+        copyNotice_.setText(tr("Image copied"));
+        copyNotice_.setAlignment(Qt::AlignCenter);
+        copyNotice_.setAttribute(Qt::WA_TransparentForMouseEvents);
+        copyNotice_.setStyleSheet(QStringLiteral(
+            "QLabel { color: white; background-color: rgba(40, 40, 40, 230);"
+            " border-radius: 6px; padding: 10px 18px; }"));
+        copyNotice_.hide();
+        copyNoticeTimer_.setSingleShot(true);
+        copyNoticeTimer_.setInterval(2000);
+        connect(&copyNoticeTimer_, &QTimer::timeout, &copyNotice_, &QWidget::hide);
         setWindowTitle(tr("Image Viewer"));
         qApp->installEventFilter(this);
         refreshTimer_.setSingleShot(true);
@@ -237,6 +248,7 @@ protected:
     {
         closeButton_.move(width() - closeButton_.width(), 0);
         closeButton_.hide();
+        positionCopyNotice();
         QWidget::resizeEvent(event);
     }
 
@@ -406,8 +418,20 @@ private:
 
     void copyImage()
     {
-        if (!image_.isNull())
-            QApplication::clipboard()->setImage(image_);
+        if (image_.isNull())
+            return;
+        QApplication::clipboard()->setImage(image_);
+        positionCopyNotice();
+        copyNotice_.show();
+        copyNotice_.raise();
+        copyNoticeTimer_.start();
+    }
+
+    void positionCopyNotice()
+    {
+        copyNotice_.adjustSize();
+        copyNotice_.move(std::max(0, (width() - copyNotice_.width()) / 2),
+                         std::max(0, height() - copyNotice_.height() - 24));
     }
 
     void setSharpening(Sharpening value)
@@ -756,6 +780,8 @@ private:
     static constexpr qsizetype maxPendingDecodes_ = 7;
 
     FullscreenCloseButton closeButton_{this};
+    QLabel copyNotice_{this};
+    QTimer copyNoticeTimer_;
     bool dragPending_ = false;
     qint64 wheelRemainder_ = 0;
     QPoint dragStart_;

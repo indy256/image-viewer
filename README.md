@@ -15,6 +15,7 @@ Browse PNG, JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetic
 or the mouse wheel (up for previous, down for next).
 Photos automatically fit the window, and newly added files appear without restarting.
 Press Ctrl+C (Command+C on macOS) to copy the full-resolution image to the clipboard.
+A brief "Image copied" message confirms copying from either the shortcut or menu.
 The copied image includes its decoded orientation and excludes temporary display effects.
 Press lowercase s for mild sharpening or uppercase S (Shift+S) for strong sharpening.
 Press the same key again to turn it off, or the other key to switch strength.

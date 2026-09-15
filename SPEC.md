@@ -60,6 +60,11 @@ Navigation stops at the first and last files without wrapping. Touchpad or touch
 gestures work when the operating system delivers the corresponding mouse events.
 Dragging begins after the platform drag-distance threshold is reached.
 
+Copying an image with the shortcut or context menu shows an "Image copied" notice
+near the bottom center for two seconds. Copying again restarts the timer. The
+notice does not take focus or intercept mouse input, and appears in both window
+modes. No notice is shown when no image is loaded.
+
 ## Window behavior
 
 Fullscreen fills the screen without a title bar or frame. On Windows, fullscreen
