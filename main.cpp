@@ -48,7 +48,7 @@ class FullscreenCloseButton final : public QAbstractButton
 public:
     explicit FullscreenCloseButton(QWidget *parent) : QAbstractButton(parent)
     {
-        setFixedSize(48, 48);
+        setFixedSize(43, 43);
         setFocusPolicy(Qt::NoFocus);
         setCursor(Qt::PointingHandCursor);
         setToolTip(tr("Close"));
@@ -63,8 +63,9 @@ protected:
         painter.fillRect(rect(), isDown() ? QColor(170, 35, 35) : QColor(40, 40, 40, 220));
         painter.setRenderHint(QPainter::Antialiasing);
         painter.setPen(QPen(QColor(160, 160, 160), 1, Qt::SolidLine, Qt::RoundCap));
-        painter.drawLine(17, 17, 31, 31);
-        painter.drawLine(31, 17, 17, 31);
+        painter.translate(width() / 2.0, height() / 2.0);
+        painter.drawLine(QPointF(-7, -7), QPointF(7, 7));
+        painter.drawLine(QPointF(7, -7), QPointF(-7, 7));
     }
 
     void leaveEvent(QEvent *event) override
