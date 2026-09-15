@@ -1,2 +1,4 @@
 packaging/AppRun text eol=lf
+packaging/*.sh text eol=lf
+tests/*.sh text eol=lf
 *.yml text eol=lf

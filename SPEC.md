@@ -82,6 +82,30 @@ installation. Report success or a registration error in a dialog.
 Registration is repeatable and updates the installation path. Existing default
 applications remain selected; the success dialog explains how to choose defaults.
 
+### Updating the application
+
+The context menu includes **Update to latest version**, available without an image.
+Read the latest stable release from the GitHub API for `indy256/image-viewer` and
+select the asset for the running application's OS and architecture, matching names
+case-insensitively for compatibility with older releases. Windows supports x64 and
+ARM64, Linux supports x64 AppImages, and macOS supports ARM64 `.app` installations.
+
+Download over HTTPS, require the release's SHA-256 digest and exact asset size,
+and stage the update beside the current app. A modal progress dialog permits
+cancellation until handoff. Report missing assets, network errors, invalid
+checksums, missing system tools, and unwritable install locations without replacing
+the running application. Windows and Linux report when the current file already
+matches the latest release. No GitHub authentication is required for public releases.
+
+After the helper signals readiness and the viewer commits the handoff, quit the
+viewer, wait for its process to exit, replace the executable
+(or entire macOS bundle), and restart with the selected image's absolute path.
+Use a detached hidden PowerShell helper on Windows and a shell helper on Unix.
+Keep diagnostic logs in the staging directory. Do not create a backup or roll back
+after replacement. Report installation or relaunch failures; Windows also detects immediate exit.
+Do not request elevation. macOS stages the app using hdiutil and ditto; Linux
+restarts the persistent AppImage with its old mount environment removed.
+
 ### Fullscreen and windowed mode
 
 Fullscreen fills the screen without a title bar or frame. On Windows, fullscreen

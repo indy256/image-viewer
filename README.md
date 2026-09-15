@@ -35,6 +35,15 @@ user, without administrator access. On macOS, run the installed `iv.app`; on Lin
 registration creates a user desktop entry pointing to the executable or AppImage.
 Choose your default viewer through the system's Open With or Default Apps controls.
 Register again if you move the application.
+Choose **Update to latest version** to download the matching asset from the latest
+[GitHub release](https://github.com/indy256/image-viewer/releases), verify its size
+and SHA-256 checksum, replace the app, and restart with the current image.
+The app folder must be writable. Windows uses the system curl and PowerShell;
+Linux requires curl and an AppImage installation; macOS updates the installed
+`.app` from the release DMG. Downloads can be canceled before installation.
+The updater replaces the app without creating a backup or rolling back. Diagnostic
+logs remain in a `.iv-update-*` folder beside the app. Older releases with
+mixed-case asset names are supported.
 Your window size and position are remembered when switching modes.
 WebP supports transparency; animated WebP shows its first frame.
 HEIC/HEIF and AVIF display the primary photo, with rotation and cropping applied.

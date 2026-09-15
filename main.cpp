@@ -3,6 +3,7 @@
 
 #include "jpegloader.h"
 #include "fileassociations.h"
+#include "updater.h"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -241,6 +242,11 @@ protected:
             ->setEnabled(gammaTenths_ != 10);
         menu.addSeparator();
         menu.addAction(tr("Register file types"), this, &ImageViewer::registerFileTypes);
+        menu.addAction(tr("Update to latest version"), this, [this] {
+            const QString path = index_ >= 0 ? files_.at(index_) : QString();
+            if (updateToLatestVersion(this, path))
+                QCoreApplication::quit();
+        });
         menu.addAction(tr("Exit\tEsc"), this, &QWidget::close);
         menu.exec(event->reason() == QContextMenuEvent::Keyboard
                       ? mapToGlobal(rect().center()) : event->globalPos());

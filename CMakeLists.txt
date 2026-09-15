@@ -237,11 +237,13 @@ qt_add_executable(iv
     main.cpp
     jpegloader.cpp
     fileassociations.cpp
+    updater.cpp
 )
 qt_add_resources(iv "iv_icons"
     PREFIX "/iv"
     BASE "packaging"
     FILES packaging/image-viewer.png
+        packaging/update-windows.ps1 packaging/update-unix.sh
 )
 if(WIN32)
     target_sources(iv PRIVATE packaging/iv.rc)
