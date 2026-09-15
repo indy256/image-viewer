@@ -21,22 +21,22 @@ jobs:
           - os: ubuntu-latest
             qt-version: '6.8.3'
             package-format: TGZ
-            artifact-path: dist/iv-Linux-X64.AppImage
+            artifact-path: dist/iv-linux-x64.appimage
           - os: windows-latest
             msvc-arch: x64
             qt-version: '6.11.2'
             package-format: ZIP
-            artifact-path: dist/iv-Windows-X64.exe
+            artifact-path: dist/iv-windows-x64.exe
           - os: windows-11-arm
             msvc-arch: arm64
             qt-version: '6.11.2'
             package-format: ZIP
-            artifact-path: dist/iv-Windows-ARM64.exe
+            artifact-path: dist/iv-windows-arm64.exe
           - os: macos-latest
             # Qt 6.8.3 links AGL, which newer macOS SDKs no longer provide.
             qt-version: '6.11.2'
             package-format: DragNDrop
-            artifact-path: dist/iv-macOS-ARM64.dmg
+            artifact-path: dist/iv-macos-arm64.dmg
 
     steps:
       - name: Check out source
@@ -137,7 +137,7 @@ jobs:
         run: >-
           cpack --config build/CPackConfig.cmake -C Release
           -G ${{ matrix.package-format }} -B dist
-          -D CPACK_PACKAGE_FILE_NAME=iv-${{ runner.os }}-${{ runner.arch }}
+          -D CPACK_PACKAGE_FILE_NAME=iv-macos-arm64
 
       - name: Build Linux AppImage
         if: runner.os == 'Linux'
@@ -169,8 +169,8 @@ jobs:
           curl -fL --retry 3 -o appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
           mkdir -p dist
-          ./appimagetool.AppImage AppDir dist/iv-Linux-X64.AppImage
-          chmod 755 dist/iv-Linux-X64.AppImage
+          ./appimagetool.AppImage AppDir dist/iv-linux-x64.appimage
+          chmod 755 dist/iv-linux-x64.appimage
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
