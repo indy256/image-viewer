@@ -26,6 +26,8 @@ Press F or double-click to switch between fullscreen and windowed mode, drag the
 image to move the window, and press Esc to exit.
 In fullscreen, move the pointer to the top-right corner to reveal a close button;
 click the cross to exit. It hides when the pointer leaves.
+Right-click to open a menu with fullscreen, previous/next image, copy image,
+sharpening, gamma adjustment/reset, and exit commands.
 Your window size and position are remembered when switching modes.
 WebP supports transparency; animated WebP shows its first frame.
 HEIC/HEIF and AVIF display the primary photo, with rotation and cropping applied.

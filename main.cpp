@@ -6,6 +6,7 @@
 #include <QAbstractButton>
 #include <QApplication>
 #include <QClipboard>
+#include <QContextMenuEvent>
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
@@ -16,6 +17,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QMap>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QResizeEvent>
@@ -186,6 +188,51 @@ public:
     }
 
 protected:
+    void contextMenuEvent(QContextMenuEvent *event) override
+    {
+        dragPending_ = false;
+        closeButton_.hide();
+        QMenu menu(this);
+        auto *fullscreen = menu.addAction(tr("Fullscreen\tF"), this,
+                                         &ImageViewer::toggleFullScreen);
+        fullscreen->setCheckable(true);
+        fullscreen->setChecked(isFullScreen());
+        menu.addSeparator();
+        menu.addAction(tr("Previous image\tLeft"), this, [this] { navigate(-1); })
+            ->setEnabled(index_ > 0);
+        menu.addAction(tr("Next image\tRight"), this, [this] { navigate(1); })
+            ->setEnabled(index_ >= 0 && index_ + 1 < files_.size());
+        menu.addAction(tr("Copy image\t%1").arg(
+                           QKeySequence(QKeySequence::Copy).toString(QKeySequence::NativeText)),
+                       this, &ImageViewer::copyImage)->setEnabled(!image_.isNull());
+        menu.addSeparator();
+        auto *sharpening = menu.addMenu(tr("Sharpening"));
+        sharpening->setEnabled(!image_.isNull());
+        auto addSharpening = [this, sharpening](const QString &label, Sharpening value) {
+            auto *action = sharpening->addAction(label, this, [this, value] {
+                setSharpening(value);
+            });
+            action->setCheckable(true);
+            action->setChecked(sharpening_ == value);
+        };
+        addSharpening(tr("Off"), Sharpening::Off);
+        addSharpening(tr("Mild\ts"), Sharpening::Mild);
+        addSharpening(tr("Strong\tShift+S"), Sharpening::Strong);
+        auto *gamma = menu.addMenu(tr("Gamma (%1)").arg(gammaTenths_ / 10.0, 0, 'f', 1));
+        gamma->setEnabled(!image_.isNull());
+        gamma->addAction(tr("Increase\tUp"), this, [this] { setGamma(gammaTenths_ + 1); })
+            ->setEnabled(gammaTenths_ < 40);
+        gamma->addAction(tr("Decrease\tDown"), this, [this] { setGamma(gammaTenths_ - 1); })
+            ->setEnabled(gammaTenths_ > 1);
+        gamma->addAction(tr("Reset to 1.0"), this, [this] { setGamma(10); })
+            ->setEnabled(gammaTenths_ != 10);
+        menu.addSeparator();
+        menu.addAction(tr("Exit\tEsc"), this, &QWidget::close);
+        menu.exec(event->reason() == QContextMenuEvent::Keyboard
+                      ? mapToGlobal(rect().center()) : event->globalPos());
+        event->accept();
+    }
+
     void resizeEvent(QResizeEvent *event) override
     {
         closeButton_.move(width() - closeButton_.width(), 0);
@@ -265,21 +312,13 @@ protected:
     void keyPressEvent(QKeyEvent *event) override
     {
         if (event->matches(QKeySequence::Copy)) {
-            if (!event->isAutoRepeat() && !image_.isNull())
-                QApplication::clipboard()->setImage(image_);
+            if (!event->isAutoRepeat())
+                copyImage();
             event->accept();
             return;
         }
         if (event->key() == Qt::Key_Up || event->key() == Qt::Key_Down) {
-            if (!image_.isNull()) {
-                const int gammaTenths = std::clamp(
-                    gammaTenths_ + (event->key() == Qt::Key_Up ? 1 : -1), 1, 40);
-                if (gammaTenths != gammaTenths_) {
-                    gammaTenths_ = gammaTenths;
-                    adjustedImage_ = QImage();
-                    update();
-                }
-            }
+            setGamma(gammaTenths_ + (event->key() == Qt::Key_Up ? 1 : -1));
             event->accept();
             return;
         }
@@ -289,9 +328,7 @@ protected:
                     ? event->modifiers().testFlag(Qt::ShiftModifier)
                     : event->text() == QLatin1String("S");
                 const Sharpening requested = uppercase ? Sharpening::Strong : Sharpening::Mild;
-                sharpening_ = sharpening_ == requested ? Sharpening::Off : requested;
-                adjustedImage_ = QImage();
-                update();
+                setSharpening(sharpening_ == requested ? Sharpening::Off : requested);
             }
             event->accept();
             return;
@@ -366,6 +403,31 @@ protected:
 private:
     using FileStamp = QPair<qint64, QDateTime>;
     enum class Sharpening { Off, Mild, Strong };
+
+    void copyImage()
+    {
+        if (!image_.isNull())
+            QApplication::clipboard()->setImage(image_);
+    }
+
+    void setSharpening(Sharpening value)
+    {
+        if (image_.isNull() || sharpening_ == value)
+            return;
+        sharpening_ = value;
+        adjustedImage_ = QImage();
+        update();
+    }
+
+    void setGamma(int value)
+    {
+        value = std::clamp(value, 1, 40);
+        if (image_.isNull() || gammaTenths_ == value)
+            return;
+        gammaTenths_ = value;
+        adjustedImage_ = QImage();
+        update();
+    }
 
     static void adjustGamma(QImage &image, int gammaTenths)
     {
