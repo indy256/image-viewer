@@ -67,6 +67,23 @@ modes. No notice is shown when no image is loaded.
 
 ## Window behavior
 
+### File type registration
+
+The context menu includes **Register file types**, available even without an image.
+Register PNG, JPG/JPEG, JP2, WebP, HEIC/HEIF and AVIF as supported formats for this
+installation. Report success or a registration error in a dialog.
+
+- Windows: write per-user ProgID, OpenWithProgids and application capabilities,
+  and notify the shell. Quote the executable and file argument in the open command.
+- macOS: register the running `.app` bundle with Launch Services.
+- Linux: install a user desktop entry and icon, pointing to the persistent AppImage
+  path when applicable; refresh the desktop database if the utility is available.
+
+Registration is repeatable and updates the installation path. Existing default
+applications remain selected; the success dialog explains how to choose defaults.
+
+### Fullscreen and windowed mode
+
 Fullscreen fills the screen without a title bar or frame. On Windows, fullscreen
 also suppresses the compositor border and rounded corners so the viewer covers
 the screen edges and corners.

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include "jpegloader.h"
+#include "fileassociations.h"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -19,6 +20,7 @@
 #include <QLabel>
 #include <QMap>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QResizeEvent>
@@ -238,6 +240,7 @@ protected:
         gamma->addAction(tr("Reset to 1.0"), this, [this] { setGamma(10); })
             ->setEnabled(gammaTenths_ != 10);
         menu.addSeparator();
+        menu.addAction(tr("Register file types"), this, &ImageViewer::registerFileTypes);
         menu.addAction(tr("Exit\tEsc"), this, &QWidget::close);
         menu.exec(event->reason() == QContextMenuEvent::Keyboard
                       ? mapToGlobal(rect().center()) : event->globalPos());
@@ -425,6 +428,24 @@ private:
         copyNotice_.show();
         copyNotice_.raise();
         copyNoticeTimer_.start();
+    }
+
+    void registerFileTypes()
+    {
+        const QString error = registerImageFileTypes();
+        if (!error.isEmpty()) {
+            QMessageBox::warning(this, tr("Register file types"), error);
+            return;
+        }
+        QString message = tr("Image Viewer is registered for PNG, JPEG, JPEG 2000, WebP, HEIC/HEIF and AVIF.\n\n");
+#ifdef Q_OS_WIN
+        message += tr("Choose Image Viewer in Open with, or in Settings > Apps > Default apps to make it your default viewer.");
+#elif defined(Q_OS_MACOS)
+        message += tr("To make it the default, select an image in Finder, open Get Info, choose iv under Open with, and click Change All.");
+#else
+        message += tr("Choose Image Viewer in your file manager's Open With menu to make it the default viewer.");
+#endif
+        QMessageBox::information(this, tr("Register file types"), message);
     }
 
     void positionCopyNotice()

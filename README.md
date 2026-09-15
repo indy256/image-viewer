@@ -28,7 +28,13 @@ image to move the window, and press Esc to exit.
 In fullscreen, move the pointer to the top-right corner to reveal a close button;
 click the cross to exit. It hides when the pointer leaves.
 Right-click to open a menu with fullscreen, previous/next image, copy image,
-sharpening, gamma adjustment/reset, and exit commands.
+sharpening, gamma adjustment/reset, file type registration, and exit commands.
+Choose **Register file types** to add this installation to Open With for all supported
+formats. On Windows it also registers Image Viewer in Default Apps for the current
+user, without administrator access. On macOS, run the installed `iv.app`; on Linux,
+registration creates a user desktop entry pointing to the executable or AppImage.
+Choose your default viewer through the system's Open With or Default Apps controls.
+Register again if you move the application.
 Your window size and position are remembered when switching modes.
 WebP supports transparency; animated WebP shows its first frame.
 HEIC/HEIF and AVIF display the primary photo, with rotation and cropping applied.

@@ -236,6 +236,7 @@ qt_add_executable(iv
     MACOSX_BUNDLE
     main.cpp
     jpegloader.cpp
+    fileassociations.cpp
 )
 qt_add_resources(iv "iv_icons"
     PREFIX "/iv"
@@ -259,7 +260,9 @@ get_target_property(qt_library_type Qt6::Core TYPE)
 function(configure_viewer_target target)
     target_link_libraries(${target} PRIVATE Qt6::Widgets iv_jp2 iv_webp iv_heic iv_turbojpeg)
     if(WIN32)
-        target_link_libraries(${target} PRIVATE dwmapi)
+        target_link_libraries(${target} PRIVATE dwmapi shell32)
+    elseif(APPLE)
+        target_link_libraries(${target} PRIVATE "-framework CoreServices" "-framework CoreFoundation")
     endif()
     if(qt_library_type STREQUAL "STATIC_LIBRARY")
         qt_import_plugins(${target} INCLUDE_BY_TYPE imageformats Qt6::QJpegPlugin)
