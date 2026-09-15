@@ -45,6 +45,7 @@ iv <path-to-image>
 | --- | --- |
 | Left arrow | Select the preceding image in the sorted list. |
 | Right arrow | Select the following image in the sorted list. |
+| Ctrl+C / Command+C on macOS | Copy the full-resolution decoded image to the clipboard, including decoded orientation and transparency, without temporary sharpening or gamma. Do nothing when no image is loaded. Holding the shortcut does not repeatedly copy. |
 | Mouse wheel up / down | Select the preceding / following image, one file per wheel notch. |
 | F | Toggle fullscreen and windowed mode. Holding F does not repeatedly toggle. |
 | s / S (Shift+S) | Toggle temporary mild / strong display sharpening for the current image. Strong mode doubles the mild detail boost. Pressing the same key again turns sharpening off; the other key switches strength. Holding either key does not repeatedly toggle. Resets when another image loads; never modifies image files or persists between runs. |

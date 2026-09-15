@@ -4,6 +4,7 @@
 #include "jpegloader.h"
 
 #include <QApplication>
+#include <QClipboard>
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
@@ -12,6 +13,7 @@
 #include <QIcon>
 #include <QImageReader>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QMap>
 #include <QMouseEvent>
 #include <QPainter>
@@ -50,7 +52,8 @@ public:
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nUp / Down: increase / decrease temporary gamma\nF: toggle full screen\ns: toggle temporary mild sharpening\nS (Shift+S): toggle temporary strong sharpening\nEsc: exit");
+            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nUp / Down: increase / decrease temporary gamma\nF: toggle full screen\ns: toggle temporary mild sharpening\nS (Shift+S): toggle temporary strong sharpening\n%1: copy image\nEsc: exit")
+                           .arg(QKeySequence(QKeySequence::Copy).toString(QKeySequence::NativeText));
             return;
         }
 
@@ -210,6 +213,12 @@ protected:
 
     void keyPressEvent(QKeyEvent *event) override
     {
+        if (event->matches(QKeySequence::Copy)) {
+            if (!event->isAutoRepeat() && !image_.isNull())
+                QApplication::clipboard()->setImage(image_);
+            event->accept();
+            return;
+        }
         if (event->key() == Qt::Key_Up || event->key() == Qt::Key_Down) {
             if (!image_.isNull()) {
                 const int gammaTenths = std::clamp(
