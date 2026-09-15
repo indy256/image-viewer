@@ -93,7 +93,7 @@ public:
         copyNoticeTimer_.setSingleShot(true);
         copyNoticeTimer_.setInterval(2000);
         connect(&copyNoticeTimer_, &QTimer::timeout, &copyNotice_, &QWidget::hide);
-        setWindowTitle(tr("Image Viewer"));
+        setWindowTitle(tr("Image Viewer %1").arg(QCoreApplication::applicationVersion()));
         qApp->installEventFilter(this);
         refreshTimer_.setSingleShot(true);
         refreshTimer_.setInterval(150);
@@ -608,7 +608,7 @@ private:
             index_ = -1;
             image_ = QImage();
             message_ = tr("No PNG, JPEG, JP2, WebP, HEIC/HEIF or AVIF files in this folder. Waiting for images...");
-            setWindowTitle(tr("Image Viewer"));
+            setWindowTitle(tr("Image Viewer %1").arg(QCoreApplication::applicationVersion()));
             update();
             return;
         }
@@ -754,9 +754,10 @@ private:
             message_.clear();
         const QString resolution = image_.isNull() ? QString()
             : tr(" - %1 \u00d7 %2").arg(image_.width()).arg(image_.height());
-        setWindowTitle(tr("%1 (%2/%3)%4 - Image Viewer - Left / Right to navigate")
+        setWindowTitle(tr("%1 (%2/%3)%4 - Image Viewer %5 - Left / Right to navigate")
                            .arg(file.absoluteDir().dirName() + QLatin1Char('/') + file.fileName())
-                           .arg(index_ + 1).arg(files_.size()).arg(resolution));
+                           .arg(index_ + 1).arg(files_.size()).arg(resolution)
+                           .arg(QCoreApplication::applicationVersion()));
         fitWindowToImage();
         update();
     }
@@ -836,6 +837,7 @@ private:
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setApplicationVersion(QStringLiteral(IMAGE_VIEWER_VERSION));
     app.setWindowIcon(QIcon(QStringLiteral(":/iv/image-viewer.png")));
     app.setDesktopFileName(QStringLiteral("image-viewer"));
     // JPEG 2000 needs substantial temporary memory beyond the decoded pixels.

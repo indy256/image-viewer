@@ -2,6 +2,23 @@ cmake_minimum_required(VERSION 3.21)
 
 project(ImageViewer LANGUAGES C CXX)
 
+set(IMAGE_VIEWER_VERSION "" CACHE STRING "Version displayed in the window title (defaults to Git tag)")
+if(NOT IMAGE_VIEWER_VERSION)
+    find_package(Git QUIET)
+    if(Git_FOUND)
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" describe --tags --always --dirty
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            OUTPUT_VARIABLE IMAGE_VIEWER_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    endif()
+    if(NOT IMAGE_VIEWER_VERSION)
+        set(IMAGE_VIEWER_VERSION "dev")
+    endif()
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -239,6 +256,7 @@ qt_add_executable(iv
     fileassociations.cpp
     updater.cpp
 )
+target_compile_definitions(iv PRIVATE IMAGE_VIEWER_VERSION="${IMAGE_VIEWER_VERSION}")
 qt_add_resources(iv "iv_icons"
     PREFIX "/iv"
     BASE "packaging"

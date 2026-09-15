@@ -51,6 +51,10 @@ AVIF animation playback is not supported.
 
 Building AVIF requires Perl and, on x86/x64, NASM or Yasm on PATH.
 
+The window title includes the version detected from Git at CMake configuration time.
+Release builds show their tag (for example, `Image Viewer v1.0.10`). Builds without
+Git metadata show `dev`; set `-DIMAGE_VIEWER_VERSION=...` to override the version.
+
 Build with the local Qt 6.11.2 / MinGW installation. Initial configuration downloads
 pinned OpenJPEG, libwebp, Qt Image Formats, libheif, libde265, and libaom sources. Image decoders
 are linked into the viewer and need no extra runtime installation:
