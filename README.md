@@ -23,8 +23,11 @@ the current image in 0.1 steps (default 1.0, range 0.1–4.0). Up lightens midto
 Down darkens them, preserving black and white. Hold an arrow key to keep adjusting. Both effects
 reset when another image loads and are never saved to the image file or remembered between runs.
 Press F or double-click to switch between fullscreen and windowed mode, drag the
-image to move the window, and press Esc to exit. Your window size and position are
-remembered when switching modes. WebP supports transparency; animated WebP shows its first frame.
+image to move the window, and press Esc to exit.
+In fullscreen, move the pointer to the top-right corner to reveal a close button;
+click the cross to exit. It hides when the pointer leaves.
+Your window size and position are remembered when switching modes.
+WebP supports transparency; animated WebP shows its first frame.
 HEIC/HEIF and AVIF display the primary photo, with rotation and cropping applied.
 AVIF animation playback is not supported.
 

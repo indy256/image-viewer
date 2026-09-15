@@ -52,6 +52,7 @@ iv <path-to-image>
 | Up / Down arrow | Increase / decrease temporary gamma in 0.1 steps, bounded to 0.1–4.0 (default 1.0). Uses output = input^(1/gamma): Up lightens midtones, Down darkens them, preserving black, white, and transparency. Holding a key repeats the adjustment. Works with sharpening and resets when another image loads; never modifies image files or persists between runs. |
 | Left-button double-click in the client area | Toggle fullscreen and windowed mode. |
 | Esc | Close the viewer. |
+| Pointer over the top-right corner in fullscreen | Reveal a 48 by 48 logical-pixel button with a cross. Click it to close the viewer. It hides when the pointer leaves or fullscreen ends. |
 | Left-button press and drag in windowed mode | Move the window through the platform's system-move operation. |
 
 Navigation stops at the first and last files without wrapping. Touchpad or touch

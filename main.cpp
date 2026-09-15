@@ -3,6 +3,7 @@
 
 #include "jpegloader.h"
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QClipboard>
 #include <QDateTime>
@@ -17,6 +18,7 @@
 #include <QMap>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QResizeEvent>
 #include <QScreen>
 #include <QSet>
 #include <QThreadPool>
@@ -35,6 +37,37 @@
 #include <dwmapi.h>
 #endif
 
+class FullscreenCloseButton final : public QAbstractButton
+{
+public:
+    explicit FullscreenCloseButton(QWidget *parent) : QAbstractButton(parent)
+    {
+        setFixedSize(48, 48);
+        setFocusPolicy(Qt::NoFocus);
+        setCursor(Qt::PointingHandCursor);
+        setToolTip(tr("Close"));
+        setAccessibleName(tr("Close"));
+        hide();
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        painter.fillRect(rect(), isDown() ? QColor(170, 35, 35) : QColor(40, 40, 40, 220));
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setPen(QPen(QColor(160, 160, 160), 2, Qt::SolidLine, Qt::RoundCap));
+        painter.drawLine(17, 17, 31, 31);
+        painter.drawLine(31, 17, 17, 31);
+    }
+
+    void leaveEvent(QEvent *event) override
+    {
+        hide();
+        QAbstractButton::leaveEvent(event);
+    }
+};
+
 class ImageViewer final : public QWidget
 {
 public:
@@ -42,6 +75,8 @@ public:
     {
         resize(1000, 700);
         setMinimumSize(1, 1);
+        setMouseTracking(true);
+        connect(&closeButton_, &QAbstractButton::clicked, this, &QWidget::close);
         setWindowTitle(tr("Image Viewer"));
         qApp->installEventFilter(this);
         refreshTimer_.setSingleShot(true);
@@ -151,6 +186,20 @@ public:
     }
 
 protected:
+    void resizeEvent(QResizeEvent *event) override
+    {
+        closeButton_.move(width() - closeButton_.width(), 0);
+        closeButton_.hide();
+        QWidget::resizeEvent(event);
+    }
+
+    void changeEvent(QEvent *event) override
+    {
+        if (event->type() == QEvent::WindowStateChange)
+            closeButton_.hide();
+        QWidget::changeEvent(event);
+    }
+
     bool eventFilter(QObject *object, QEvent *event) override
     {
         if (object == qApp && event->type() == QEvent::FileOpen) {
@@ -182,6 +231,8 @@ protected:
 
     void mouseMoveEvent(QMouseEvent *event) override
     {
+        closeButton_.setVisible(isFullScreen() && event->buttons() == Qt::NoButton
+                                && closeButton_.geometry().contains(event->position().toPoint()));
         if (dragPending_ && event->buttons().testFlag(Qt::LeftButton)
             && (event->position().toPoint() - dragStart_).manhattanLength()
                    >= QApplication::startDragDistance()) {
@@ -642,6 +693,7 @@ private:
     static constexpr qsizetype preloadRadius_ = 5;
     static constexpr qsizetype maxPendingDecodes_ = 7;
 
+    FullscreenCloseButton closeButton_{this};
     bool dragPending_ = false;
     qint64 wheelRemainder_ = 0;
     QPoint dragStart_;
