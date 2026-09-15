@@ -59,7 +59,7 @@ Every CI build uploads standalone downloads in the workflow run's Artifacts sect
   linked statically. No accompanying Qt DLLs or installation are needed.
 - Windows ARM64: `iv-windows-arm64.exe`, a native ARM64 executable with Qt
   and the compiler runtime linked statically.
-- Linux x64: `iv-linux-x64.appimage`. Make it executable with `chmod +x`
+- Linux x64: `iv-linux-x64.AppImage`. Make it executable with `chmod +x`
   and run it with an image filename. Qt is bundled inside the AppImage.
 - macOS ARM64: `iv-macos-arm64.dmg` containing `iv.app`, with its Qt frameworks
   and plugins inside the bundle. Open the disk image and drag `iv.app` to

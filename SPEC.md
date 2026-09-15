@@ -202,7 +202,7 @@ static Qt and compiler-runtime linking for the standalone executable.
 | --- | --- |
 | Windows x64 | `iv-windows-x64.exe`, with Qt and compiler runtime linked statically; Windows system libraries remain external. |
 | Windows ARM64 | `iv-windows-arm64.exe`, a native ARM64 executable with Qt and compiler runtime linked statically; Windows system libraries remain external. |
-| Linux x64 | `iv-linux-x64.appimage`, bundling Qt; requires executable permission and compatible host system libraries and graphics drivers. |
+| Linux x64 | `iv-linux-x64.AppImage`, bundling Qt; requires executable permission and compatible host system libraries and graphics drivers. |
 | macOS ARM64 | `iv-macos-arm64.dmg`, containing `iv.app` with its Qt frameworks and plugins. |
 
 Linux packages target the Ubuntu version used by the build runner and compatible
