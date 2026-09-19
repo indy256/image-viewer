@@ -221,6 +221,8 @@ protected:
                            QKeySequence(QKeySequence::Copy).toString(QKeySequence::NativeText)),
                        this, &ImageViewer::copyImage)->setEnabled(!image_.isNull());
         menu.addSeparator();
+        menu.addAction(tr("Reset zoom"), this, [this] { setZoom(1.0); })
+            ->setEnabled(!image_.isNull() && zoom_ != 1.0);
         auto *sharpening = menu.addMenu(tr("Sharpening"));
         sharpening->setEnabled(!image_.isNull());
         auto addSharpening = [this, sharpening](const QString &label, Sharpening value) {
@@ -256,6 +258,7 @@ protected:
 
     void resizeEvent(QResizeEvent *event) override
     {
+        adjustedImage_ = QImage();
         closeButton_.move(width() - closeButton_.width(), 0);
         closeButton_.hide();
         positionCopyNotice();
@@ -376,6 +379,14 @@ protected:
 
     void wheelEvent(QWheelEvent *event) override
     {
+        if (event->modifiers().testFlag(Qt::ControlModifier)) {
+            wheelRemainder_ = 0;
+            const int delta = event->angleDelta().y();
+            if (delta != 0)
+                setZoom(zoom_ * std::pow(1.2, delta / 120.0));
+            event->accept();
+            return;
+        }
         const int delta = event->angleDelta().y();
         if (delta == 0) {
             event->ignore();
@@ -397,21 +408,34 @@ protected:
         QPainter painter(this);
         painter.fillRect(rect(), QColor(28, 28, 28));
         if (!image_.isNull()) {
-            const QSize fitted = image_.size().scaled(size(), Qt::KeepAspectRatio);
-            const QRect target(QPoint((width() - fitted.width()) / 2,
-                                      (height() - fitted.height()) / 2), fitted);
+            const QSizeF fitted = QSizeF(image_.size()).scaled(QSizeF(size()), Qt::KeepAspectRatio) * zoom_;
+            const QRectF target(QPointF((width() - fitted.width()) / 2,
+                                       (height() - fitted.height()) / 2), fitted);
             painter.setRenderHint(QPainter::SmoothPixmapTransform);
             if (sharpening_ != Sharpening::Off || gammaTenths_ != 10) {
-                const QSize pixels = (fitted * devicePixelRatioF()).expandedTo(QSize(1, 1));
+                // Process only visible pixels, so zoom cannot allocate oversized buffers.
+                const QRectF visible = target.intersected(QRectF(rect()));
+                const QSize pixels = (visible.size() * devicePixelRatioF()).toSize().expandedTo(QSize(1, 1));
                 if (adjustedImage_.size() != pixels) {
-                    adjustedImage_ = image_.scaled(
-                        pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+                    adjustedImage_ = QImage(pixels, QImage::Format_ARGB32);
+                    adjustedImage_.fill(Qt::transparent);
+                    {
+                        QPainter adjustedPainter(&adjustedImage_);
+                        adjustedPainter.setRenderHint(QPainter::SmoothPixmapTransform);
+                        adjustedPainter.scale(pixels.width() / visible.width(),
+                                              pixels.height() / visible.height());
+                        adjustedPainter.translate(-visible.topLeft());
+                        adjustedPainter.drawImage(target, image_);
+                    }
                     if (sharpening_ != Sharpening::Off)
                         adjustedImage_ = sharpen(adjustedImage_, sharpening_);
                     if (gammaTenths_ != 10)
                         adjustGamma(adjustedImage_, gammaTenths_);
                 }
-                painter.drawImage(target, adjustedImage_.isNull() ? image_ : adjustedImage_);
+                if (adjustedImage_.isNull())
+                    painter.drawImage(target, image_);
+                else
+                    painter.drawImage(visible, adjustedImage_);
             } else {
                 painter.drawImage(target, image_);
             }
@@ -425,6 +449,18 @@ protected:
 private:
     using FileStamp = QPair<qint64, QDateTime>;
     enum class Sharpening { Off, Mild, Strong };
+
+    void setZoom(double value)
+    {
+        if (image_.isNull())
+            return;
+        value = std::clamp(value, 0.1, 8.0);
+        if (qFuzzyCompare(value, zoom_))
+            return;
+        zoom_ = value;
+        adjustedImage_ = QImage();
+        update();
+    }
 
     void copyImage()
     {
@@ -741,6 +777,7 @@ private:
         const auto it = cache_.constFind(path);
         const QImage nextImage = it == cache_.cend() ? QImage() : it->image;
         if (image_.cacheKey() != nextImage.cacheKey()) {
+            zoom_ = 1.0;
             sharpening_ = Sharpening::Off;
             gammaTenths_ = 10;
             adjustedImage_ = QImage();
@@ -813,6 +850,7 @@ private:
     QTimer copyNoticeTimer_;
     bool dragPending_ = false;
     qint64 wheelRemainder_ = 0;
+    double zoom_ = 1.0;
     QPoint dragStart_;
     Qt::WindowStates windowedState_ = Qt::WindowNoState;
     QRect windowedGeometry_;

@@ -33,7 +33,11 @@ iv <path-to-image>
 - Show one image at a time in a single client area.
 - Apply EXIF orientation during decoding.
 - Center the image and scale it to fit the client area while preserving its
-  aspect ratio. Images may be enlarged or reduced; they are not cropped.
+  aspect ratio by default. Ctrl+wheel scales the centered image from 10% to 800%
+  of its fitted size, clipping to the client area when enlarged. Each wheel notch
+  multiplies or divides the zoom by 1.2; partial notches adjust it proportionally.
+  Zoom resets when another image loads. The context menu's **Reset zoom** command
+  restores the fitted size. Zoom also works with sharpening and gamma.
 - Use smooth scaling and a dark gray background (`#1c1c1c`) in unused areas.
 - Refit the displayed image when the window size changes.
 - Show loading, usage, waiting, and decoding-error messages as centered white
@@ -47,6 +51,7 @@ iv <path-to-image>
 | Right arrow | Select the following image in the sorted list. |
 | Ctrl+C / Command+C on macOS | Copy the full-resolution decoded image to the clipboard, including decoded orientation and transparency, without temporary sharpening or gamma. Do nothing when no image is loaded. Holding the shortcut does not repeatedly copy. |
 | Mouse wheel up / down | Select the preceding / following image, one file per wheel notch. |
+| Ctrl + mouse wheel up / down | Zoom the current image in / out without switching files. Do nothing when no image is loaded. |
 | F | Toggle fullscreen and windowed mode. Holding F does not repeatedly toggle. |
 | s / S (Shift+S) | Toggle temporary mild / strong display sharpening for the current image. Strong mode doubles the mild detail boost. Pressing the same key again turns sharpening off; the other key switches strength. Holding either key does not repeatedly toggle. Resets when another image loads; never modifies image files or persists between runs. |
 | Up / Down arrow | Increase / decrease temporary gamma in 0.1 steps, bounded to 0.1–4.0 (default 1.0). Uses output = input^(1/gamma): Up lightens midtones, Down darkens them, preserving black, white, and transparency. Holding a key repeats the adjustment. Works with sharpening and resets when another image loads; never modifies image files or persists between runs. |

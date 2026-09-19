@@ -14,6 +14,9 @@ iv photo.jpg
 Browse PNG, JPEG, JP2, WebP, HEIC, and AVIF images in the same folder alphabetically with the Left and Right arrow keys
 or the mouse wheel (up for previous, down for next).
 Photos automatically fit the window, and newly added files appear without restarting.
+Hold Ctrl and scroll up / down to zoom in / out around the image center (10%–800%
+of the fitted size). Zoom resets when another image loads; choose **Reset zoom**
+from the right-click menu to fit the current image again.
 Press Ctrl+C (Command+C on macOS) to copy the full-resolution image to the clipboard.
 A brief "Image copied" message confirms copying from either the shortcut or menu.
 The copied image includes its decoded orientation and excludes temporary display effects.
