@@ -104,7 +104,7 @@ public:
                 [this] { refreshTimer_.start(); });
         connect(&refreshTimer_, &QTimer::timeout, this, [this] { refreshDirectory(); });
         if (arguments.size() != 2) {
-            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nUp / Down: increase / decrease temporary gamma\nF: toggle full screen\ns: toggle temporary mild sharpening\nS (Shift+S): toggle temporary strong sharpening\n%1: copy image\nEsc: exit")
+            message_ = tr("Usage: iv <file.png|file.jpg|file.jp2|file.webp|file.heic|file.heif|file.avif>\n\nLeft / Right: previous / next image\nUp / Down: increase / decrease temporary gamma\nF / Enter: toggle full screen\ns: toggle temporary mild sharpening\nS (Shift+S): toggle temporary strong sharpening\n%1: copy image\nEsc: exit")
                            .arg(QKeySequence(QKeySequence::Copy).toString(QKeySequence::NativeText));
             return;
         }
@@ -200,7 +200,7 @@ protected:
         dragPending_ = false;
         closeButton_.hide();
         QMenu menu(this);
-        auto *fullscreen = menu.addAction(tr("Fullscreen\tF"), this,
+        auto *fullscreen = menu.addAction(tr("Fullscreen\tF / Enter"), this,
                                          &ImageViewer::toggleFullScreen);
         fullscreen->setCheckable(true);
         fullscreen->setChecked(isFullScreen());
@@ -350,7 +350,8 @@ protected:
             event->accept();
             return;
         }
-        if (event->key() == Qt::Key_F) {
+        if (event->key() == Qt::Key_F || event->key() == Qt::Key_Return
+            || event->key() == Qt::Key_Enter) {
             if (!event->isAutoRepeat())
                 toggleFullScreen();
             event->accept();

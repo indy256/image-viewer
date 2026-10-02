@@ -26,7 +26,7 @@ Use Up / Down to increase / decrease gamma for
 the current image in 0.1 steps (default 1.0, range 0.1–4.0). Up lightens midtones;
 Down darkens them, preserving black and white. Hold an arrow key to keep adjusting. Both effects
 reset when another image loads and are never saved to the image file or remembered between runs.
-Press F or double-click to switch between fullscreen and windowed mode, drag the
+Press F, Enter, or double-click to switch between fullscreen and windowed mode, drag the
 image to move the window, and press Esc to exit.
 In fullscreen, move the pointer to the top-right corner to reveal a close button;
 click the cross to exit. It hides when the pointer leaves.
