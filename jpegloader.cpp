@@ -33,11 +33,19 @@ QImage loadJpeg(const QString &path, QString &error)
     const auto bytes = reinterpret_cast<const unsigned char *>(data.constData());
     const int limit = QImageReader::allocationLimit();
     if (tj3Set(handle, TJPARAM_MAXMEMORY, limit) < 0
-        || tj3Set(handle, TJPARAM_SAVEMARKERS, 4) < 0
-        || tj3DecompressHeader(handle, bytes, size_t(data.size())) < 0) {
+        || tj3Set(handle, TJPARAM_SAVEMARKERS, 4) < 0) {
         error = QString::fromUtf8(tj3GetErrorStr(handle));
         return {};
     }
+    const auto decodeFailed = [&](int result) {
+        // By default, recoverable warnings return -1 after decoding completes.
+        if (result >= 0 || tj3GetErrorCode(handle) == TJERR_WARNING)
+            return false;
+        error = QString::fromUtf8(tj3GetErrorStr(handle));
+        return true;
+    };
+    if (decodeFailed(tj3DecompressHeader(handle, bytes, size_t(data.size()))))
+        return {};
     QBuffer buffer(&data);
     buffer.open(QIODevice::ReadOnly);
     QImageReader metadata(&buffer, "jpeg");
@@ -63,11 +71,9 @@ QImage loadJpeg(const QString &path, QString &error)
         return {};
     }
     const int pixelFormat = Q_BYTE_ORDER == Q_LITTLE_ENDIAN ? TJPF_BGRA : TJPF_ARGB;
-    if (tj3Decompress8(handle, bytes, size_t(data.size()), image.bits(),
-                     int(image.bytesPerLine()), pixelFormat) < 0) {
-        error = QString::fromUtf8(tj3GetErrorStr(handle));
+    if (decodeFailed(tj3Decompress8(handle, bytes, size_t(data.size()), image.bits(),
+                                  int(image.bytesPerLine()), pixelFormat)))
         return {};
-    }
     unsigned char *profile = nullptr;
     size_t profileSize = 0;
     if (tj3GetICCProfile(handle, &profile, &profileSize) == 0 && profile) {

@@ -200,6 +200,10 @@ decoder cannot mix their internal implementations. Images decode
 directly to display pixels, preserving ICC profiles and EXIF orientation. CMYK and
 higher-precision JPEGs use Qt's reader. The configured image allocation limit also
 bounds the accelerated output raster and, separately, decoder working buffers.
+Recoverable JPEG warnings, such as extraneous bytes before a marker, do not
+prevent displaying the decoded image. Fatal decoder errors still fail loading.
+Configure with `-DIMAGE_VIEWER_BUILD_TESTS=ON` and run `ctest --test-dir build
+--output-on-failure` to check JPEG warning recovery and fatal-error handling.
 Initial configuration downloads the checksum-verified OpenJPEG source archive;
 subsequent builds reuse it. A C compiler is required to build the codec.
 
