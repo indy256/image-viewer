@@ -792,7 +792,7 @@ private:
             message_.clear();
         const QString resolution = image_.isNull() ? QString()
             : tr(" - %1 \u00d7 %2").arg(image_.width()).arg(image_.height());
-        setWindowTitle(tr("%1 (%2/%3)%4 - Image Viewer %5 - Left / Right to navigate")
+        setWindowTitle(tr("%1 (%2/%3)%4 - Image Viewer %5")
                            .arg(file.absoluteDir().dirName() + QLatin1Char('/') + file.fileName())
                            .arg(index_ + 1).arg(files_.size()).arg(resolution)
                            .arg(QCoreApplication::applicationVersion()));

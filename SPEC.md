@@ -137,7 +137,7 @@ already fitted window. Window state is not persisted between application runs.
 For a selected file, the title has this format:
 
 ```text
-CurrentDir/filename (position/total) - width × height - Image Viewer version - Left / Right to navigate
+CurrentDir/filename (position/total) - width × height - Image Viewer version
 ```
 
 `CurrentDir` is the containing folder's final name, not its full absolute path.
