@@ -5,7 +5,7 @@
 Licensed under the [GNU GPL v3.0 only](LICENSE) (`GPL-3.0-only`).
 Third-party dependencies retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
-A single-window viewer for PNG (`.png`), JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), HEIC/HEIF (`.heic`, `.heif`), and AVIF (`.avif`) images that opens in full-screen mode. Launch with an image filename:
+A single-window viewer for PNG (`.png`), JPEG (`.jpg`, `.jpeg`), JPEG 2000 (`.jp2`), WebP (`.webp`), HEIC/HEIF (`.heic`, `.heif`), and AVIF (`.avif`) images that opens in windowed mode. Launch with an image filename:
 
 ```powershell
 iv photo.jpg

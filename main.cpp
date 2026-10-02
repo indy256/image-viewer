@@ -143,7 +143,6 @@ public:
             return;
         windowedState_ = windowState();
         windowedGeometry_ = isMaximized() ? normalGeometry() : geometry();
-        fitPending_ = false;
 #ifdef Q_OS_WIN
         // Windows needs an explicit frameless hint to cover the screen edges.
         // Other platforms let the window manager handle fullscreen decorations.
@@ -159,22 +158,15 @@ public:
     {
         dragPending_ = false;
         if (isFullScreen()) {
-            const QRect screenArea = screen()->availableGeometry();
             showNormal();
 #ifdef Q_OS_WIN
             windowHandle()->setFlag(Qt::FramelessWindowHint, false);
 #endif
             refreshNativeFrame();
             restoreWindowedGeometry();
-            if (!firstWindowedSwitch_ && windowedState_.testFlag(Qt::WindowMaximized))
+            if (windowedState_.testFlag(Qt::WindowMaximized))
                 showMaximized();
-            fitPending_ = firstWindowedSwitch_;
             fitWindowToImage();
-            if (firstWindowedSwitch_) {
-                const QRect frame = frameGeometry();
-                move(pos() + screenArea.center() - frame.center());
-                firstWindowedSwitch_ = false;
-            }
 #if defined(Q_OS_MACOS) || defined(Q_OS_LINUX)
             // Restore focus after Qt processes the windowed-mode changes.
             QTimer::singleShot(0, this, [this] {
@@ -854,8 +846,7 @@ private:
     QPoint dragStart_;
     Qt::WindowStates windowedState_ = Qt::WindowNoState;
     QRect windowedGeometry_;
-    bool firstWindowedSwitch_ = true;
-    bool fitPending_ = false;
+    bool fitPending_ = true;
 
     QString directory_;
     QStringList files_;
@@ -883,6 +874,8 @@ int main(int argc, char *argv[])
     // Keep a bounded budget; QT_IMAGEIO_MAXALLOC can override it at runtime.
     QImageReader::setAllocationLimit(1024);
     ImageViewer viewer(app.arguments());
-    viewer.enterFullScreen();
+    viewer.show();
+    viewer.move(viewer.pos() + viewer.screen()->availableGeometry().center()
+                - viewer.frameGeometry().center());
     return app.exec();
 }

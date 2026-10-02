@@ -14,7 +14,7 @@ iv <path-to-image>
 
 - Accept one image path, either absolute or relative to the process working
   directory. Paths containing spaces must be quoted in the shell.
-- Open in fullscreen mode, including when displaying usage or error messages.
+- Open in windowed mode, including when displaying usage or error messages.
 - Browse the supplied file's containing directory, without searching subfolders.
 - Include files with `.png`, `.jpg`, `.jpeg`, `.jp2`, `.webp`, `.heic`, `.heif`, or `.avif` extensions, matched case-insensitively,
   including hidden files.
@@ -123,7 +123,7 @@ On Linux, the window manager controls fullscreen decorations. Returning to
 windowed mode requests foreground stacking and keyboard focus on the next event
 loop turn, without changing the native decoration flags.
 
-The first switch to windowed mode centers the window on the available desktop.
+The initial window is centered on the available desktop.
 Once an image is decoded, its dimensions determine the initial client size,
 reduced proportionally when necessary so the outer window occupies at most 85%
 of the available screen width and height. If the image is still loading, this
